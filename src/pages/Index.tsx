@@ -5,6 +5,8 @@ import RegistrationScreen from "@/components/auth/RegistrationScreen";
 import LoginScreen from "@/components/auth/LoginScreen";
 import OtpScreen from "@/components/auth/OtpScreen";
 import Dashboard from "@/components/dashboard/Dashboard";
+import CrpDashboard from "@/components/crp/CrpDashboard";
+import BuyerDashboard from "@/components/buyer/BuyerDashboard";
 
 type Screen = "choose" | "register" | "login" | "otp";
 
@@ -19,6 +21,14 @@ const Index = () => {
   }, []);
 
   if (user) {
+    if (user.role === "CRP") {
+      return <CrpDashboard user={user} onLogout={() => setUser(null)} />;
+    }
+    if (user.role === "Buyer") {
+      return (
+        <BuyerDashboard user={user} onLogout={() => setUser(null)} />
+      );
+    }
     return (
       <div className="max-w-[430px] mx-auto min-h-screen bg-card shadow-lg">
         <Dashboard user={user} onLogout={() => setUser(null)} />
