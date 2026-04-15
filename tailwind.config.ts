@@ -8,9 +8,6 @@ export default {
     container: {
       center: true,
       padding: "1rem",
-      screens: {
-        "2xl": "430px",
-      },
     },
     extend: {
       colors: {

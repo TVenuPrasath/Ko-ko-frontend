@@ -28,25 +28,26 @@ export function clearUser() {
 
 let registrationData: any = null;
 
-export function mockRegister(data: { name: string; phone: string; hamlet: string; shgName: string }) {
+export function mockRegister(data: { name: string; phone: string; hamlet: string; shgName: string; role?: string }) {
   registrationData = data;
   return { success: true, phone: data.phone };
 }
 
-export function mockLogin(phone: string) {
-  registrationData = { phone };
+export function mockLogin(phone: string, role?: string) {
+  registrationData = { phone, role: role || "SHG Member" };
   return { success: true, phone };
 }
 
 export function mockVerifyOtp(otp: string): { success: boolean; user?: User } {
   if (otp === "123456") {
+    const role = registrationData?.role || "SHG Member";
     const user: User = {
       userId: crypto.randomUUID(),
-      name: registrationData?.name || "User",
+      name: registrationData?.name || (role === "CRP" ? "CRP Admin" : role === "Buyer" ? "Buyer User" : "User"),
       phone: registrationData?.phone || "",
       hamlet: registrationData?.hamlet || "Keezhpudhupattu",
       shgName: registrationData?.shgName || "",
-      role: "SHG Member",
+      role,
     };
     setUser(user);
     return { success: true, user };
