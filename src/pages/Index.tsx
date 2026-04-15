@@ -1,16 +1,52 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect } from "react";
+import { getUser, User } from "@/lib/auth";
+import ChooseActionScreen from "@/components/auth/ChooseActionScreen";
+import RegistrationScreen from "@/components/auth/RegistrationScreen";
+import LoginScreen from "@/components/auth/LoginScreen";
+import OtpScreen from "@/components/auth/OtpScreen";
+import Dashboard from "@/components/dashboard/Dashboard";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+type Screen = "choose" | "register" | "login" | "otp";
+
+const Index = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [screen, setScreen] = useState<Screen>("choose");
+  const [otpPhone, setOtpPhone] = useState("");
+
+  useEffect(() => {
+    const stored = getUser();
+    if (stored) setUser(stored);
+  }, []);
+
+  if (user) {
+    return (
+      <div className="max-w-[430px] mx-auto min-h-screen bg-card shadow-lg">
+        <Dashboard user={user} onLogout={() => setUser(null)} />
+      </div>
+    );
+  }
+
+  const handleOtp = (phone: string) => {
+    setOtpPhone(phone);
+    setScreen("otp");
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="max-w-[430px] mx-auto min-h-screen bg-card shadow-lg">
+      {screen === "choose" && (
+        <ChooseActionScreen onRegister={() => setScreen("register")} onLogin={() => setScreen("login")} />
+      )}
+      {screen === "register" && (
+        <RegistrationScreen onOtp={handleOtp} onBack={() => setScreen("choose")} />
+      )}
+      {screen === "login" && (
+        <LoginScreen onOtp={handleOtp} onBack={() => setScreen("choose")} />
+      )}
+      {screen === "otp" && (
+        <OtpScreen phone={otpPhone} onVerified={(u) => setUser(u)} onBack={() => setScreen("choose")} />
+      )}
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
