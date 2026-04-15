@@ -14,13 +14,14 @@ interface LoginScreenProps {
 const LoginScreen = ({ onOtp, onBack }: LoginScreenProps) => {
   const { t } = useLanguage();
   const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("SHG Member");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     if (phone.length !== 10) return;
     setLoading(true);
     await new Promise((r) => setTimeout(r, 800));
-    mockLogin(phone);
+    mockLogin(phone, role);
     setLoading(false);
     onOtp(phone);
   };
@@ -31,6 +32,19 @@ const LoginScreen = ({ onOtp, onBack }: LoginScreenProps) => {
         <ArrowLeft size={20} /> {t("back")}
       </button>
       <h1 className="text-2xl font-bold mb-6 text-foreground">{t("login")}</h1>
+
+      <div className="mb-4">
+        <Label className="text-base font-medium mb-2 block">{t("selectRole")}</Label>
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          className="w-full border border-input rounded-md px-3 py-3 text-base bg-card text-foreground"
+        >
+          <option value="SHG Member">{t("shgMember")}</option>
+          <option value="CRP">{t("crpStaff")}</option>
+          <option value="Buyer">{t("buyer")}</option>
+        </select>
+      </div>
 
       <div>
         <Label className="text-base font-medium mb-2 block">{t("phoneNumber")}</Label>
