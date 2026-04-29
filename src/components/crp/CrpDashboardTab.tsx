@@ -3,9 +3,14 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getHamletSummaries, getMockFarmers, getPendingUpdateFarmers } from "@/lib/crpMockData";
-import { Users, Bird, Syringe, Bug } from "lucide-react";
+import { HAMLETS } from "@/lib/auth";
+import { FileBarChart2, MessageSquare, UserPlus, Users } from "lucide-react";
 
-const CrpDashboardTab = () => {
+interface CrpDashboardTabProps {
+  onNavigate?: (tab: "reports" | "alerts" | "buyers" | "approve") => void;
+}
+
+const CrpDashboardTab = ({ onNavigate }: CrpDashboardTabProps) => {
   const { t } = useLanguage();
   const summaries = getHamletSummaries();
   const farmers = getMockFarmers();
@@ -13,42 +18,58 @@ const CrpDashboardTab = () => {
 
   const totalFarmers = farmers.length;
   const totalBirds = summaries.reduce((s, h) => s + h.totalBirds, 0);
-  const pendingVax = farmers.filter((f) => f.vaccinations.length === 0 || f.vaccinations.some((v) => new Date(v.nextDueDate) < new Date())).length;
-  const pendingDew = farmers.filter((f) => f.dewormings.length === 0 || f.dewormings.some((d) => new Date(d.nextDueDate) < new Date())).length;
+  const totalHamlets = HAMLETS.length;
 
   const [selectedHamlet, setSelectedHamlet] = useState<string | null>(null);
-
   const hamletFarmers = selectedHamlet ? farmers.filter((f) => f.hamlet === selectedHamlet) : null;
+
+  const StatRow = ({ label, value }: { label: string; value: number | string }) => (
+    <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
+      <span className="text-sm text-foreground">{label}</span>
+      <span className="text-base font-bold text-foreground border border-input rounded-md px-3 py-1 min-w-[60px] text-center bg-muted/30">
+        {value}
+      </span>
+    </div>
+  );
+
+  const actions: { key: "reports" | "alerts" | "buyers" | "approve"; label: string; icon: typeof Users }[] = [
+    { key: "reports", label: t("dataSummary"), icon: FileBarChart2 },
+    { key: "alerts", label: t("sendSms"), icon: MessageSquare },
+    { key: "buyers", label: t("addBuyersTitle"), icon: UserPlus },
+    { key: "approve", label: t("addNewMembers"), icon: Users },
+  ];
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="p-4 bg-card">
-          <Users size={24} className="text-primary mb-1" />
-          <p className="text-2xl font-bold text-foreground">{totalFarmers}</p>
-          <p className="text-xs text-muted-foreground">{t("totalFarmers")}</p>
-        </Card>
-        <Card className="p-4 bg-card">
-          <Bird size={24} className="text-primary mb-1" />
-          <p className="text-2xl font-bold text-foreground">{totalBirds}</p>
-          <p className="text-xs text-muted-foreground">{t("totalBirds")}</p>
-        </Card>
-        <Card className="p-4 bg-card">
-          <Syringe size={24} className="text-warning mb-1" />
-          <p className="text-2xl font-bold text-foreground">{pendingVax}</p>
-          <p className="text-xs text-muted-foreground">{t("pendingVaccinations")}</p>
-        </Card>
-        <Card className="p-4 bg-card">
-          <Bug size={24} className="text-warning mb-1" />
-          <p className="text-2xl font-bold text-foreground">{pendingDew}</p>
-          <p className="text-xs text-muted-foreground">{t("pendingDewormings")}</p>
-        </Card>
+      <div className="text-center">
+        <h2 className="text-base font-bold text-foreground">{t("userTypeStaff")}</h2>
+        <p className="text-xs italic text-muted-foreground mt-1">{t("dashboardEn")}</p>
       </div>
 
-      {/* Hamlet Summary Table */}
+      {/* Stat counts */}
       <Card className="p-4 bg-card">
-        <h2 className="text-lg font-bold mb-3 text-foreground">{t("hamletSummary")}</h2>
+        <StatRow label={t("totalChickenCount")} value={totalBirds} />
+        <StatRow label={t("totalMembersCount")} value={totalFarmers} />
+        <StatRow label={t("streets")} value={totalHamlets} />
+      </Card>
+
+      {/* Quick action buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        {actions.map((a) => (
+          <Card
+            key={a.key}
+            onClick={() => onNavigate?.(a.key)}
+            className="p-4 bg-card cursor-pointer hover:bg-muted/40 border-2 flex flex-col items-center justify-center text-center gap-2 min-h-[100px]"
+          >
+            <a.icon size={24} className="text-primary" />
+            <p className="text-sm font-medium text-foreground leading-tight">{a.label}</p>
+          </Card>
+        ))}
+      </div>
+
+      {/* Hamlet Summary */}
+      <Card className="p-4 bg-card">
+        <h3 className="text-base font-bold mb-3 text-foreground">{t("hamletSummary")}</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -56,7 +77,6 @@ const CrpDashboardTab = () => {
                 <th className="text-left py-2 text-muted-foreground font-medium">{t("hamlet")}</th>
                 <th className="text-center py-2 text-muted-foreground font-medium">{t("totalBirds")}</th>
                 <th className="text-center py-2 text-muted-foreground font-medium">{t("vaccinatedPct")}</th>
-                <th className="text-center py-2 text-muted-foreground font-medium">{t("dewormedPct")}</th>
                 <th className="text-center py-2 text-muted-foreground font-medium">{t("pendingDemands")}</th>
               </tr>
             </thead>
@@ -68,15 +88,12 @@ const CrpDashboardTab = () => {
                   className="border-b border-border/50 cursor-pointer hover:bg-muted/50"
                 >
                   <td className="py-2 text-foreground font-medium">{s.hamlet}</td>
-                  <td className="text-center py-2 text-foreground">{s.totalBirds}</td>
+                  <td className="text-center py-2">{s.totalBirds}</td>
                   <td className="text-center py-2">{s.vaccinatedPct}%</td>
-                  <td className="text-center py-2">{s.dewormedPct}%</td>
                   <td className="text-center py-2">
                     {s.pendingDemands > 0 ? (
                       <Badge className="bg-warning text-warning-foreground">{s.pendingDemands}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">0</span>
-                    )}
+                    ) : <span className="text-muted-foreground">0</span>}
                   </td>
                 </tr>
               ))}
@@ -85,52 +102,25 @@ const CrpDashboardTab = () => {
         </div>
       </Card>
 
-      {/* Drill-down */}
       {hamletFarmers && (
         <Card className="p-4 bg-card">
           <h3 className="text-base font-bold mb-3 text-foreground">{selectedHamlet} — {t("farmerList")}</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 text-muted-foreground">{t("farmerName")}</th>
-                  <th className="text-center py-2 text-muted-foreground">{t("totalBirds")}</th>
-                  <th className="text-center py-2 text-muted-foreground">{t("status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hamletFarmers.map((f) => {
-                  const latest = f.birdUpdates[0];
-                  const birds = latest ? latest.chicks + latest.growers + latest.layers + latest.broilers : 0;
-                  const thisWeek = new Date(); thisWeek.setDate(thisWeek.getDate() - thisWeek.getDay());
-                  const weekStr = thisWeek.toISOString().split("T")[0];
-                  const updated = f.lastUpdateWeek === weekStr;
-                  return (
-                    <tr key={f.userId} className="border-b border-border/50">
-                      <td className="py-2 text-foreground">{f.name}</td>
-                      <td className="text-center py-2">{birds}</td>
-                      <td className="text-center py-2">
-                        <Badge className={updated ? "bg-success text-success-foreground" : "bg-danger text-danger-foreground"}>
-                          {updated ? "✅" : "⚠️"}
-                        </Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {hamletFarmers.map((f) => (
+            <div key={f.userId} className="flex items-center justify-between py-1.5 border-b border-border/30">
+              <span className="text-sm text-foreground">{f.name}</span>
+              <span className="text-xs text-muted-foreground">{f.phone}</span>
+            </div>
+          ))}
         </Card>
       )}
 
-      {/* Pending Farmers */}
       {pendingFarmers.length > 0 && (
         <Card className="p-4 bg-card border-danger/30">
-          <h3 className="text-base font-bold mb-3 text-danger">{t("farmersNotUpdated")} ({pendingFarmers.length})</h3>
+          <h3 className="text-base font-bold mb-2 text-danger">{t("farmersNotUpdated")} ({pendingFarmers.length})</h3>
           <div className="flex flex-col gap-1">
-            {pendingFarmers.map((f) => (
-              <div key={f.userId} className="flex items-center justify-between py-1.5 border-b border-border/30">
-                <span className="text-sm text-foreground">{f.name} — <span className="text-muted-foreground">{f.hamlet}</span></span>
+            {pendingFarmers.slice(0, 5).map((f) => (
+              <div key={f.userId} className="flex items-center justify-between py-1 border-b border-border/30">
+                <span className="text-sm text-foreground">{f.name} <span className="text-muted-foreground">— {f.hamlet}</span></span>
               </div>
             ))}
           </div>
