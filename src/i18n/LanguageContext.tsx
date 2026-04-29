@@ -1,11 +1,10 @@
-import React, { createContext, useContext, useState } from "react";
-import en from "./en.json";
+import React, { createContext, useContext } from "react";
 import ta from "./ta.json";
 
-type Lang = "en" | "ta";
-const translations = { en, ta } as const;
+type Lang = "ta";
+const translations = { ta } as const;
 
-type TranslationKey = keyof typeof en;
+type TranslationKey = keyof typeof ta;
 
 interface LanguageContextType {
   lang: Lang;
@@ -14,27 +13,20 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType>({
-  lang: "en",
+  lang: "ta",
   setLang: () => {},
   t: (key) => key,
 });
 
 export const LanguageProvider = ({ children }: { children: React.ReactNode }) => {
-  const [lang, setLang] = useState<Lang>(
-    () => (localStorage.getItem("lang") as Lang) || "en"
-  );
+  const lang: Lang = "ta";
 
   const t = (key: TranslationKey): string => {
-    return translations[lang][key] || translations.en[key] || key;
-  };
-
-  const handleSetLang = (l: Lang) => {
-    setLang(l);
-    localStorage.setItem("lang", l);
+    return translations.ta[key] || key;
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang: handleSetLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang: () => {}, t }}>
       {children}
     </LanguageContext.Provider>
   );
