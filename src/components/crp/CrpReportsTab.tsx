@@ -1,193 +1,127 @@
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  getHamletSummaries, getMockFarmers, getAllServiceDemands, getAllDiseaseReports, exportToCSV,
+  getHamletSummaries, getMockFarmers, exportToCSV, getAggregatedStock,
 } from "@/lib/crpMockData";
-import { formatDate } from "@/lib/mockData";
 import { Download } from "lucide-react";
-
-type ReportType = "hamlet_stock" | "farmer_data" | "vaccination" | "service_demand" | "disease_log";
 
 const CrpReportsTab = () => {
   const { t } = useLanguage();
-  const [activeReport, setActiveReport] = useState<ReportType | null>(null);
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const summaries = getHamletSummaries();
+  const stock = getAggregatedStock();
 
-  const reports: { key: ReportType; label: string }[] = [
-    { key: "hamlet_stock", label: t("hamletStockReport") },
-    { key: "farmer_data", label: t("farmerDataReport") },
-    { key: "vaccination", label: t("vaccinationCoverage") },
-    { key: "service_demand", label: t("serviceDemandReport") },
-    { key: "disease_log", label: t("diseaseReportLog") },
-  ];
-
-  const handleExport = () => {
-    switch (activeReport) {
-      case "hamlet_stock": {
-        const summaries = getHamletSummaries();
-        exportToCSV(
-          ["Hamlet", "Total Birds", "Vaccinated %", "Dewormed %", "Pending Demands"],
-          summaries.map((s) => [s.hamlet, s.totalBirds, s.vaccinatedPct, s.dewormedPct, s.pendingDemands]),
-          "hamlet_stock_report.csv"
-        );
-        break;
-      }
-      case "farmer_data": {
-        const farmers = getMockFarmers();
-        exportToCSV(
-          ["Name", "Phone", "Hamlet", "SHG", "Total Birds", "Last Update"],
-          farmers.map((f) => {
-            const latest = f.birdUpdates[0];
-            const birds = latest ? latest.chicks + latest.growers + latest.layers + latest.broilers : 0;
-            return [f.name, f.phone, f.hamlet, f.shgName, birds, f.lastUpdateWeek || "N/A"];
-          }),
-          "farmer_data_report.csv"
-        );
-        break;
-      }
-      case "vaccination": {
-        const farmers = getMockFarmers();
-        const rows: (string | number)[][] = [];
-        farmers.forEach((f) => {
-          if (f.vaccinations.length > 0) {
-            f.vaccinations.forEach((v) => {
-              rows.push([f.name, f.hamlet, v.vaccineType, formatDate(v.dateGiven), formatDate(v.nextDueDate)]);
-            });
-          } else {
-            rows.push([f.name, f.hamlet, "Not vaccinated", "", ""]);
-          }
-        });
-        exportToCSV(["Farmer", "Hamlet", "Vaccine Type", "Date Given", "Next Due"], rows, "vaccination_coverage.csv");
-        break;
-      }
-      case "service_demand": {
-        const demands = getAllServiceDemands();
-        exportToCSV(
-          ["Farmer", "Hamlet", "Type", "Quantity", "Status", "Date"],
-          demands.map((d) => [d.farmerName, d.hamlet, d.type, d.quantity, d.status, formatDate(d.createdAt)]),
-          "service_demand_report.csv"
-        );
-        break;
-      }
-      case "disease_log": {
-        const reports = getAllDiseaseReports();
-        exportToCSV(
-          ["Farmer", "Hamlet", "Description", "Status", "Date"],
-          reports.map((r) => [r.farmerName, r.hamlet, r.description, r.status, formatDate(r.reportedAt)]),
-          "disease_report_log.csv"
-        );
-        break;
-      }
-    }
+  const handleExportSummary = () => {
+    exportToCSV(
+      ["தெரு / Hamlet", "வெள்ளை கழிச்சல் தடுப்பூசி", "அம்மை தடுப்பூசி", "குடற்புழு நீக்கம்", "கடன்", "இதர"],
+      summaries.map((s) => [
+        s.hamlet, s.vaccinatedPct + "%", s.vaccinatedPct + "%",
+        s.dewormedPct + "%", s.pendingDemands, "—",
+      ]),
+      "data_summary.csv"
+    );
   };
 
-  const renderPreview = () => {
-    if (!activeReport) return null;
+  const handleExportSaleable = () => {
+    exportToCSV(
+      ["வகை", "எண்ணிக்கை"],
+      [
+        [t("broilerChicken"), stock.broilers],
+        [t("youngChicks"), stock.chicks],
+        [t("eggs"), stock.layers * 5],
+      ],
+      "saleable_stock.csv"
+    );
+  };
 
-    switch (activeReport) {
-      case "hamlet_stock": {
-        const summaries = getHamletSummaries();
-        return (
-          <table className="w-full text-sm">
-            <thead><tr className="border-b border-border">
-              <th className="text-left py-2 text-muted-foreground">{t("hamlet")}</th>
-              <th className="text-center py-2 text-muted-foreground">{t("totalBirds")}</th>
-              <th className="text-center py-2 text-muted-foreground">{t("vaccinatedPct")}</th>
-              <th className="text-center py-2 text-muted-foreground">{t("dewormedPct")}</th>
-            </tr></thead>
-            <tbody>
-              {summaries.map((s) => (
-                <tr key={s.hamlet} className="border-b border-border/50">
-                  <td className="py-2 text-foreground">{s.hamlet}</td>
-                  <td className="text-center py-2">{s.totalBirds}</td>
-                  <td className="text-center py-2">{s.vaccinatedPct}%</td>
-                  <td className="text-center py-2">{s.dewormedPct}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        );
-      }
-      case "farmer_data": {
-        const farmers = getMockFarmers().slice(0, 10);
-        return (
-          <table className="w-full text-sm">
-            <thead><tr className="border-b border-border">
-              <th className="text-left py-2 text-muted-foreground">{t("farmerName")}</th>
-              <th className="text-left py-2 text-muted-foreground">{t("hamlet")}</th>
-              <th className="text-center py-2 text-muted-foreground">{t("totalBirds")}</th>
-            </tr></thead>
-            <tbody>
-              {farmers.map((f) => {
-                const latest = f.birdUpdates[0];
-                const birds = latest ? latest.chicks + latest.growers + latest.layers + latest.broilers : 0;
-                return (
-                  <tr key={f.userId} className="border-b border-border/50">
-                    <td className="py-2 text-foreground">{f.name}</td>
-                    <td className="py-2 text-muted-foreground">{f.hamlet}</td>
-                    <td className="text-center py-2">{birds}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        );
-      }
-      default:
-        return <p className="text-sm text-muted-foreground">{t("preview")} — {t("exportCSV")}</p>;
-    }
+  const handleFarmerData = () => {
+    const farmers = getMockFarmers();
+    exportToCSV(
+      ["Name", "Phone", "Hamlet", "SHG", "Total Birds"],
+      farmers.map((f) => {
+        const latest = f.birdUpdates[0];
+        const birds = latest ? latest.chicks + latest.growers + latest.layers + latest.broilers : 0;
+        return [f.name, f.phone, f.hamlet, f.shgName, birds];
+      }),
+      "farmer_data.csv"
+    );
   };
 
   return (
     <div className="flex flex-col gap-5">
-      <h2 className="text-lg font-bold text-foreground">{t("reports")}</h2>
-
-      {/* Date Range */}
-      <Card className="p-4 bg-card">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs text-muted-foreground">{t("fromDate")}</label>
-            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">{t("toDate")}</label>
-            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-          </div>
-        </div>
-      </Card>
-
-      {/* Report Buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {reports.map(({ key, label }) => (
-          <Button
-            key={key}
-            variant={activeReport === key ? "default" : "outline"}
-            onClick={() => setActiveReport(activeReport === key ? null : key)}
-            className="tap-target text-sm justify-start"
-          >
-            {label}
-          </Button>
-        ))}
+      <div className="text-center">
+        <h2 className="text-lg font-bold text-foreground">{t("dataSummary")}</h2>
+        <p className="text-xs italic text-muted-foreground">{t("dataSummaryEn")}</p>
       </div>
 
-      {/* Preview & Export */}
-      {activeReport && (
-        <Card className="p-4 bg-card">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base font-bold text-foreground">{t("preview")}</h3>
-            <Button size="sm" onClick={handleExport} className="gap-2 bg-primary text-primary-foreground">
-              <Download size={14} /> {t("exportCSV")}
-            </Button>
+      {/* Data summary table — wireframe 10 */}
+      <Card className="p-4 bg-card">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border border-border">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="border border-border py-2 px-2 text-left text-muted-foreground font-medium">தெரு</th>
+                <th className="border border-border py-2 px-2 text-center text-muted-foreground font-medium leading-tight">வெள்ளை<br/>கழிச்சல்<br/>தடுப்பூசி</th>
+                <th className="border border-border py-2 px-2 text-center text-muted-foreground font-medium leading-tight">அம்மை<br/>தடுப்பூசி</th>
+                <th className="border border-border py-2 px-2 text-center text-muted-foreground font-medium leading-tight">குடற்புழு<br/>நீக்கம்</th>
+                <th className="border border-border py-2 px-2 text-center text-muted-foreground font-medium">கடன்</th>
+                <th className="border border-border py-2 px-2 text-center text-muted-foreground font-medium">இதர</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summaries.map((s) => (
+                <tr key={s.hamlet}>
+                  <td className="border border-border py-2 px-2 text-foreground">{s.hamlet}</td>
+                  <td className="border border-border py-2 px-2 text-center">{s.vaccinatedPct}%</td>
+                  <td className="border border-border py-2 px-2 text-center">{s.vaccinatedPct}%</td>
+                  <td className="border border-border py-2 px-2 text-center">{s.dewormedPct}%</td>
+                  <td className="border border-border py-2 px-2 text-center">{s.pendingDemands}</td>
+                  <td className="border border-border py-2 px-2 text-center">—</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Button onClick={handleExportSummary} size="sm" className="mt-3 gap-2 bg-primary text-primary-foreground">
+          <Download size={14} /> {t("exportCSV")}
+        </Button>
+      </Card>
+
+      {/* Saleable — wireframe 10 bottom */}
+      <Card className="p-4 bg-card">
+        <h3 className="text-base font-bold mb-3 text-foreground">{t("saleableReady")}</h3>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between py-2 border-b border-border/40">
+            <span className="text-sm text-foreground">1. {t("broilerChicken")}</span>
+            <span className="border border-input rounded-md px-3 py-1 min-w-[70px] text-center bg-muted/30 font-bold">
+              {stock.broilers}
+            </span>
           </div>
-          <div className="overflow-x-auto">
-            {renderPreview()}
+          <div className="flex items-center justify-between py-2 border-b border-border/40">
+            <span className="text-sm text-foreground">2. {t("youngChicks")}</span>
+            <span className="border border-input rounded-md px-3 py-1 min-w-[70px] text-center bg-muted/30 font-bold">
+              {stock.chicks}
+            </span>
           </div>
-        </Card>
-      )}
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm text-foreground">3. {t("eggs")}</span>
+            <span className="border border-input rounded-md px-3 py-1 min-w-[70px] text-center bg-muted/30 font-bold">
+              {stock.layers * 5}
+            </span>
+          </div>
+        </div>
+        <Button onClick={handleExportSaleable} size="sm" className="mt-3 gap-2 bg-primary text-primary-foreground">
+          <Download size={14} /> {t("exportCSV")}
+        </Button>
+      </Card>
+
+      <Card className="p-4 bg-card">
+        <h3 className="text-base font-bold mb-2 text-foreground">{t("farmerDataReport")}</h3>
+        <Button onClick={handleFarmerData} size="sm" className="gap-2 bg-primary text-primary-foreground">
+          <Download size={14} /> {t("exportCSV")}
+        </Button>
+      </Card>
     </div>
   );
 };
