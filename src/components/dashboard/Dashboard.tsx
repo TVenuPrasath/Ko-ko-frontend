@@ -47,7 +47,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto p-4 pb-24">
-        {tab === "home" && <HomeTab user={user} />}
+        {tab === "home" && <HomeTab user={user} onNavigate={(t) => setTab(t)} />}
         {tab === "weekly" && <WeeklyUpdateTab />}
         {tab === "disease" && <DiseaseReportTab user={user} />}
         {tab === "notifications" && <NotificationsTab />}
