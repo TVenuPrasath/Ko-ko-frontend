@@ -11,7 +11,7 @@ interface BuyerDashboardProps {
 }
 
 const BuyerDashboard = ({ user, onLogout }: BuyerDashboardProps) => {
-  const { t, lang, setLang } = useLanguage();
+  const { t } = useLanguage();
   const stock = getAggregatedStock();
   const marketPrice = getLatestMarketPrice();
   const crpPhone = getCrpPhone();
@@ -35,12 +35,6 @@ const BuyerDashboard = ({ user, onLogout }: BuyerDashboardProps) => {
           <p className="text-xs text-muted-foreground">{t("buyerDashboard")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setLang(lang === "en" ? "ta" : "en")}
-            className="text-xs font-medium bg-muted px-2 py-1 rounded text-foreground"
-          >
-            {lang === "en" ? "தமிழ்" : "EN"}
-          </button>
           <button onClick={handleLogout} className="text-muted-foreground p-1">
             <LogOut size={20} />
           </button>

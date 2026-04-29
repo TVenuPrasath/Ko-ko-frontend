@@ -21,7 +21,7 @@ interface CrpDashboardProps {
 type CrpTab = "dashboard" | "farmers" | "services" | "alerts" | "buyers" | "reports";
 
 const CrpDashboard = ({ user, onLogout }: CrpDashboardProps) => {
-  const { t, lang, setLang } = useLanguage();
+  const { t } = useLanguage();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState<CrpTab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
@@ -95,12 +95,6 @@ const CrpDashboard = ({ user, onLogout }: CrpDashboardProps) => {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground hidden sm:block">{user.name}</span>
-            <button
-              onClick={() => setLang(lang === "en" ? "ta" : "en")}
-              className="text-xs font-medium bg-muted px-2 py-1 rounded text-foreground"
-            >
-              {lang === "en" ? "தமிழ்" : "EN"}
-            </button>
             {isMobile && (
               <button onClick={handleLogout} className="text-muted-foreground p-1">
                 <LogOut size={20} />

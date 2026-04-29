@@ -15,7 +15,7 @@ interface DashboardProps {
 type Tab = "home" | "weekly" | "disease" | "notifications";
 
 const Dashboard = ({ user, onLogout }: DashboardProps) => {
-  const { t, lang, setLang } = useLanguage();
+  const { t } = useLanguage();
   const [tab, setTab] = useState<Tab>("home");
 
   const handleLogout = () => {
@@ -39,12 +39,6 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
           <p className="text-xs text-muted-foreground">Poultry Tracker</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setLang(lang === "en" ? "ta" : "en")}
-            className="text-xs font-medium bg-muted px-2 py-1 rounded text-foreground"
-          >
-            {lang === "en" ? "தமிழ்" : "EN"}
-          </button>
           <button onClick={handleLogout} className="text-muted-foreground p-1">
             <LogOut size={20} />
           </button>
