@@ -5,13 +5,16 @@ export interface User {
   hamlet: string;
   shgName: string;
   role: string;
+  approved?: boolean;
 }
 
 export const HAMLETS = [
-  "Keezhpudhupattu", "Melpattu", "Kottakuppam", "Thiruvengadam",
-  "Sathyamangalam", "Vadugapattu", "Kilnagar", "Periyakulam",
-  "Arasankulam", "Thondamanallur"
+  "கோணாங்கிப்பட்டி", "மேல்பட்டு", "கொட்டக்குப்பம்", "திருவெங்கடம்",
+  "சத்தியமங்கலம்", "வடுகப்பட்டு", "கீழ்நகர்", "பெரியகுளம்",
+  "அரசன்குளம்", "தொண்டமனல்லூர்"
 ];
+
+export const PLF_GROUPS = ["குழு 1", "குழு 2", "குழு 3", "குழு 4", "குழு 5"];
 
 export function getUser(): User | null {
   const data = localStorage.getItem("user");
@@ -28,7 +31,15 @@ export function clearUser() {
 
 let registrationData: any = null;
 
-export function mockRegister(data: { name: string; phone: string; hamlet: string; shgName: string; role?: string }) {
+export function mockRegister(data: {
+  name: string;
+  phone: string;
+  hamlet: string;
+  shgName: string;
+  role?: string;
+  houseNo?: string;
+  street?: string;
+}) {
   registrationData = data;
   return { success: true, phone: data.phone };
 }
@@ -43,11 +54,12 @@ export function mockVerifyOtp(otp: string): { success: boolean; user?: User } {
     const role = registrationData?.role || "SHG Member";
     const user: User = {
       userId: crypto.randomUUID(),
-      name: registrationData?.name || (role === "CRP" ? "CRP Admin" : role === "Buyer" ? "Buyer User" : "User"),
+      name: registrationData?.name || (role === "CRP" ? "நிர்வாகி" : role === "Buyer" ? "வாங்குபவர்" : "பயனர்"),
       phone: registrationData?.phone || "",
-      hamlet: registrationData?.hamlet || "Keezhpudhupattu",
+      hamlet: registrationData?.hamlet || HAMLETS[0],
       shgName: registrationData?.shgName || "",
       role,
+      approved: true,
     };
     setUser(user);
     return { success: true, user };
