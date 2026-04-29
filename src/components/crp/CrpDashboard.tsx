@@ -12,16 +12,18 @@ import CrpServicesTab from "./CrpServicesTab";
 import CrpAlertsTab from "./CrpAlertsTab";
 import CrpBuyersTab from "./CrpBuyersTab";
 import CrpReportsTab from "./CrpReportsTab";
+import CrpSendSmsTab from "./CrpSendSmsTab";
+import CrpApproveFarmersTab from "./CrpApproveFarmersTab";
 
 interface CrpDashboardProps {
   user: User;
   onLogout: () => void;
 }
 
-type CrpTab = "dashboard" | "farmers" | "services" | "alerts" | "buyers" | "reports";
+type CrpTab = "dashboard" | "farmers" | "alerts" | "sms" | "buyers" | "approve" | "reports";
 
 const CrpDashboard = ({ user, onLogout }: CrpDashboardProps) => {
-  const { t, lang, setLang } = useLanguage();
+  const { t } = useLanguage();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState<CrpTab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
@@ -34,19 +36,26 @@ const CrpDashboard = ({ user, onLogout }: CrpDashboardProps) => {
   const tabs: { key: CrpTab; icon: typeof LayoutDashboard; label: string }[] = [
     { key: "dashboard", icon: LayoutDashboard, label: t("dashboard") },
     { key: "farmers", icon: Users, label: t("farmers") },
-    { key: "services", icon: Wrench, label: t("services") },
-    { key: "alerts", icon: Bell, label: t("alerts") },
-    { key: "buyers", icon: ShoppingCart, label: t("buyers") },
     { key: "reports", icon: FileText, label: t("reports") },
+    { key: "sms", icon: Bell, label: t("sendSms") },
+    { key: "buyers", icon: ShoppingCart, label: t("buyers") },
+    { key: "approve", icon: Wrench, label: t("addNewMembers") },
+    { key: "alerts", icon: Bell, label: t("alerts") },
   ];
+
+  const handleNavigate = (target: "reports" | "alerts" | "buyers" | "approve") => {
+    if (target === "alerts") setTab("sms");
+    else setTab(target as CrpTab);
+  };
 
   const renderContent = () => {
     switch (tab) {
-      case "dashboard": return <CrpDashboardTab />;
+      case "dashboard": return <CrpDashboardTab onNavigate={handleNavigate} />;
       case "farmers": return <CrpFarmersTab />;
-      case "services": return <CrpServicesTab />;
       case "alerts": return <CrpAlertsTab />;
+      case "sms": return <CrpSendSmsTab />;
       case "buyers": return <CrpBuyersTab />;
+      case "approve": return <CrpApproveFarmersTab />;
       case "reports": return <CrpReportsTab />;
     }
   };
@@ -95,12 +104,6 @@ const CrpDashboard = ({ user, onLogout }: CrpDashboardProps) => {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground hidden sm:block">{user.name}</span>
-            <button
-              onClick={() => setLang(lang === "en" ? "ta" : "en")}
-              className="text-xs font-medium bg-muted px-2 py-1 rounded text-foreground"
-            >
-              {lang === "en" ? "தமிழ்" : "EN"}
-            </button>
             {isMobile && (
               <button onClick={handleLogout} className="text-muted-foreground p-1">
                 <LogOut size={20} />

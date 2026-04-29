@@ -1,44 +1,91 @@
+import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { mockLogin } from "@/lib/auth";
+import { Loader2 } from "lucide-react";
 
 interface ChooseActionScreenProps {
   onRegister: () => void;
-  onLogin: () => void;
+  onOtp: (phone: string, role: string) => void;
 }
 
-const ChooseActionScreen = ({ onRegister, onLogin }: ChooseActionScreenProps) => {
-  const { t, lang, setLang } = useLanguage();
+const ChooseActionScreen = ({ onRegister, onOtp }: ChooseActionScreenProps) => {
+  const { t } = useLanguage();
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("SHG Member");
+  const [loading, setLoading] = useState(false);
+
+  const handleSendOtp = async () => {
+    if (phone.length !== 10) return;
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 600));
+    mockLogin(phone, role);
+    setLoading(false);
+    onOtp(phone, role);
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 gap-6">
-      <div className="text-center mb-4">
-        <span className="text-4xl mb-3 block">🐔</span>
-        <h1 className="text-2xl font-bold text-foreground">கோழி கண்காணிப்பு</h1>
-        <p className="text-lg text-muted-foreground mt-1">Poultry Tracker</p>
-      </div>
+    <div className="flex flex-col min-h-screen p-5 gap-5">
+      {/* Top — Logo + App name */}
+      <Card className="p-5 flex items-center gap-4 bg-card">
+        <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center text-3xl shrink-0">
+          🐔
+        </div>
+        <div className="flex-1">
+          <h1 className="text-lg font-bold text-foreground leading-tight">{t("appNameTamil")}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{t("appTagline")}</p>
+        </div>
+      </Card>
 
-      <button
-        onClick={() => setLang(lang === "en" ? "ta" : "en")}
-        className="text-sm font-medium text-primary underline"
+      {/* New user button */}
+      <Button
+        onClick={onRegister}
+        variant="outline"
+        className="tap-target w-full text-lg font-semibold rounded-lg border-2 border-primary text-primary"
       >
-        {lang === "en" ? "தமிழ்" : "English"}
-      </button>
+        {t("newRegistration")}
+      </Button>
 
-      <div className="w-full flex flex-col gap-4 mt-4">
+      {/* Login / OTP block */}
+      <Card className="p-5 bg-card flex flex-col gap-4">
+        <p className="text-sm italic text-muted-foreground text-center">LOG IN / OTP SCREEN</p>
+
+        <div>
+          <Label className="text-base font-medium mb-2 block">{t("selectRole")}</Label>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="w-full border border-input rounded-md px-3 py-3 text-base bg-card text-foreground"
+          >
+            <option value="SHG Member">{t("userTypeFarmer")}</option>
+            <option value="CRP">{t("userTypeStaff")}</option>
+            <option value="Buyer">{t("buyer")}</option>
+          </select>
+        </div>
+
+        <div>
+          <Label className="text-base font-medium mb-2 block">{t("phoneNumber")} :</Label>
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            className="tap-target text-base"
+            placeholder="9876543210"
+            inputMode="numeric"
+            type="tel"
+          />
+        </div>
+
         <Button
-          onClick={onRegister}
-          className="tap-target w-full text-lg font-semibold rounded-lg bg-primary text-primary-foreground"
+          onClick={handleSendOtp}
+          disabled={phone.length !== 10 || loading}
+          className="tap-target w-full text-lg font-semibold bg-primary text-primary-foreground"
         >
-          {t("newRegistration")}
+          {loading ? <Loader2 className="animate-spin" size={20} /> : t("sendOtp")}
         </Button>
-        <Button
-          onClick={onLogin}
-          variant="outline"
-          className="tap-target w-full text-lg font-semibold rounded-lg border-2 border-primary text-primary"
-        >
-          {t("alreadyRegistered")}
-        </Button>
-      </div>
+      </Card>
     </div>
   );
 };

@@ -71,4 +71,13 @@
   .tap-target {
     @apply min-h-[52px] flex items-center justify-center;
   }
+
+  @keyframes marquee {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+  .animate-marquee {
+    display: inline-block;
+    animation: marquee 18s linear infinite;
+  }
 }
