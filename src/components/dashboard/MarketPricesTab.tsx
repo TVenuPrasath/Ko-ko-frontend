@@ -1,0 +1,80 @@
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { getMarketPrice, formatTamilDate } from "@/lib/marketAndHistory";
+import { Drumstick, Egg, Bird, Share2 } from "lucide-react";
+import { toast } from "sonner";
+
+const MarketPricesTab = () => {
+  const price = getMarketPrice();
+
+  if (!price) {
+    return (
+      <Card className="p-6 text-center text-muted-foreground">
+        விலை விவரங்கள் இல்லை. CRP-ஐ தொடர்பு கொள்ளவும்
+      </Card>
+    );
+  }
+
+  const handleShare = async () => {
+    const message = `🐔 கோ-கோ செயலி — இன்றைய சந்தை விலை\n\n` +
+      `🍗 கறிக்கோழி: ₹${price.broiler}/kg\n` +
+      `🐥 குஞ்சுகள்: ₹${price.chick}/குஞ்சு\n` +
+      `🥚 முட்டை: ₹${price.egg}/முட்டை\n\n` +
+      `புதுப்பித்தவர்: ${price.updatedBy}\n` +
+      `தேதி: ${formatTamilDate(price.updatedAt)}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: message });
+      } catch {
+        // user cancelled
+      }
+    } else {
+      const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(url, "_blank");
+    }
+    toast.success("WhatsApp மூலம் பகிரப்பட்டது");
+  };
+
+  const items = [
+    { icon: Drumstick, label: "கறிக்கோழி விலை", value: `₹${price.broiler}`, unit: "/ kg" },
+    { icon: Bird, label: "குஞ்சுகள் விலை", value: `₹${price.chick}`, unit: "/ குஞ்சு" },
+    { icon: Egg, label: "முட்டை விலை", value: `₹${price.egg}`, unit: "/ முட்டை" },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card className="bg-primary text-primary-foreground p-4 rounded-xl">
+        <p className="text-base font-bold">சந்தை விலை</p>
+        <p className="text-xs opacity-90">(Market Prices)</p>
+      </Card>
+
+      {items.map((it, i) => (
+        <Card key={i} className="p-4 border-2">
+          <div className="flex items-center gap-4">
+            <it.icon size={32} className="text-primary shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">{it.label}</p>
+              <p className="text-3xl font-bold text-foreground">
+                {it.value}
+                <span className="text-sm text-muted-foreground font-normal">{it.unit}</span>
+              </p>
+            </div>
+          </div>
+        </Card>
+      ))}
+
+      <Card className="p-3 bg-muted/40 text-xs text-muted-foreground">
+        <p>கடைசியாக புதுப்பிக்கப்பட்டது: {formatTamilDate(price.updatedAt)}</p>
+        <p>புதுப்பித்தவர்: {price.updatedBy}</p>
+      </Card>
+
+      <Button onClick={handleShare} className="tap-target w-full text-base font-bold bg-success text-success-foreground">
+        <Share2 size={18} className="mr-2" />
+        WhatsApp மூலம் பகிர்
+      </Button>
+    </div>
+  );
+};
+
+export default MarketPricesTab;

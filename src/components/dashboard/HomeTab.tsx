@@ -2,21 +2,25 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { User } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { hasSubmittedThisWeek } from "@/lib/mockData";
-import { ClipboardList, Bug, Bird, AlertTriangle } from "lucide-react";
+import { ClipboardList, Bug, Bird, AlertTriangle, History, IndianRupee } from "lucide-react";
+
+type NavTab = "weekly" | "disease" | "notifications" | "history" | "prices";
 
 interface HomeTabProps {
   user: User;
-  onNavigate?: (tab: "weekly" | "disease" | "notifications") => void;
+  onNavigate?: (tab: NavTab) => void;
 }
 
 const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
   const { t } = useLanguage();
   const weekDone = hasSubmittedThisWeek();
 
-  const cards: { key: "weekly" | "disease"; titleTa: string; titleEn: string; icon: typeof Bird; color: string }[] = [
+  const cards: { key: NavTab; titleTa: string; titleEn: string; icon: typeof Bird; color: string }[] = [
     { key: "weekly", titleTa: t("birdsUpdate"), titleEn: "(Birds update)", icon: Bird, color: "text-primary" },
     { key: "weekly", titleTa: t("servicesNeededTitle"), titleEn: "(Service update)", icon: ClipboardList, color: "text-warning" },
     { key: "disease", titleTa: t("reportDisease"), titleEn: "(Report diseases)", icon: Bug, color: "text-danger" },
+    { key: "history", titleTa: "தடுப்பூசி வரலாறு", titleEn: "(Vaccination History)", icon: History, color: "text-success" },
+    { key: "prices", titleTa: "சந்தை விலை", titleEn: "(Market Prices)", icon: IndianRupee, color: "text-primary" },
   ];
 
   return (
