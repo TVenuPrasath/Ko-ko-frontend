@@ -70,7 +70,7 @@ const CrpServicesTab = () => {
     api.getAllServiceDemands().then(setAllDemands).catch(() => {});
   }, [refresh]);
 
-  const pendingDemands = allDemands.filter((d) => d.status === "Pending" && ["Feed Stock", "Equipment", "Vaccination"].includes(d.type));
+  const pendingDemands = allDemands.filter((d) => d.status === "Pending" && ["Feed Stock", "Equipment", "Vaccination", "Deworming"].includes(d.type));
   const loanDemands = allDemands.filter((d) => d.type === "Loan");
 
   const handleApprove = async (id: string) => {

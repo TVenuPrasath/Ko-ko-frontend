@@ -47,7 +47,7 @@ const CrpFarmersTab = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedFarmer.birdUpdates.slice(0, 8).map((u) => (
+                  {selectedFarmer.birdUpdates.map((u) => (
                     <tr key={u.id} className="border-b border-border/50">
                       <td className="py-2 text-foreground">{formatDate(u.weekDate)}</td>
                       <td className="text-center py-2">{u.chicks}</td>
