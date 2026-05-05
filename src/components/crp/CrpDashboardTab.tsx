@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getHamletSummaries, getMockFarmers, getPendingUpdateFarmers } from "@/lib/crpMockData";
+import { getHamletSummaries, getMockFarmers } from "@/lib/crpMockData";
 import { HAMLETS } from "@/lib/auth";
-import { FileBarChart2, MessageSquare, UserPlus, Users, IndianRupee } from "lucide-react";
-import { mockServiceDemands } from "@/lib/api";
+import { FileBarChart2, MessageSquare, UserPlus, Users, IndianRupee, Activity } from "lucide-react";
+import { mockServiceDemands, mockBirdUpdates, mockActivityLog } from "@/lib/api";
+import { formatDate } from "@/lib/mockData";
 
 interface CrpDashboardTabProps {
   onNavigate?: (tab: "reports" | "alerts" | "share" | "approve") => void;
@@ -15,11 +16,19 @@ const CrpDashboardTab = ({ onNavigate }: CrpDashboardTabProps) => {
   const { t } = useLanguage();
   const summaries = getHamletSummaries();
   const farmers = getMockFarmers();
-  const pendingFarmers = getPendingUpdateFarmers();
 
   const totalFarmers = farmers.length;
   const totalBirds = summaries.reduce((s, h) => s + h.totalBirds, 0);
   const totalHamlets = HAMLETS.length;
+
+  // Weekly update counter
+  function weekOf0() {
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay());
+    return d.toISOString().split("T")[0];
+  }
+  const updatedThisWeek = mockBirdUpdates.filter((u) => u.weekDate === weekOf0()).length;
+  const notUpdatedThisWeek = Math.max(0, totalFarmers - updatedThisWeek);
 
   const [selectedHamlet, setSelectedHamlet] = useState<string | null>(null);
   const hamletFarmers = selectedHamlet ? farmers.filter((f) => f.hamlet === selectedHamlet) : null;
@@ -49,6 +58,23 @@ const CrpDashboardTab = ({ onNavigate }: CrpDashboardTabProps) => {
         <h2 className="text-base font-bold text-foreground">{t("userTypeStaff")}</h2>
         <p className="text-xs italic text-muted-foreground mt-1">{t("dashboardEn")}</p>
       </div>
+
+      {/* Weekly update counter */}
+      <Card className={`p-4 border-2 ${notUpdatedThisWeek > 0 ? "border-warning/50 bg-warning/5" : "border-success/50 bg-success/5"}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold text-foreground">இந்த வார பதிவு</p>
+            <p className="text-xs text-muted-foreground">(This week's updates)</p>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-foreground">{updatedThisWeek}<span className="text-sm text-muted-foreground font-normal">/{totalFarmers}</span></p>
+            {notUpdatedThisWeek > 0
+              ? <Badge className="bg-warning text-warning-foreground text-xs">{notUpdatedThisWeek} பதிவிடவில்லை</Badge>
+              : <Badge className="bg-success text-success-foreground text-xs">அனைவரும் பதிவிட்டார்கள் ✅</Badge>
+            }
+          </div>
+        </div>
+      </Card>
 
       {/* Stat counts */}
       <Card className="p-4 bg-card">
@@ -143,30 +169,30 @@ const CrpDashboardTab = ({ onNavigate }: CrpDashboardTabProps) => {
         </div>
       </Card>
 
-      {hamletFarmers && (
-        <Card className="p-4 bg-card">
-          <h3 className="text-base font-bold mb-3 text-foreground">{selectedHamlet} — {t("farmerList")}</h3>
-          {hamletFarmers.map((f) => (
-            <div key={f.userId} className="flex items-center justify-between py-1.5 border-b border-border/30">
-              <span className="text-sm text-foreground">{f.name}</span>
-              <span className="text-xs text-muted-foreground">{f.phone}</span>
-            </div>
-          ))}
-        </Card>
-      )}
-
-      {pendingFarmers.length > 0 && (
-        <Card className="p-4 bg-card border-danger/30">
-          <h3 className="text-base font-bold mb-2 text-danger">{t("farmersNotUpdated")} ({pendingFarmers.length})</h3>
-          <div className="flex flex-col gap-1">
-            {pendingFarmers.slice(0, 5).map((f) => (
-              <div key={f.userId} className="flex items-center justify-between py-1 border-b border-border/30">
-                <span className="text-sm text-foreground">{f.name} <span className="text-muted-foreground">— {f.hamlet}</span></span>
+      {/* Activity Feed */}
+      <Card className="p-4 bg-card">
+        <div className="flex items-center gap-2 mb-3">
+          <Activity size={18} className="text-primary" />
+          <h3 className="text-base font-bold text-foreground">சமீப செயல்பாடுகள் (Recent Activity)</h3>
+        </div>
+        {mockActivityLog.length === 0 ? (
+          <p className="text-sm text-muted-foreground">செயல்பாடுகள் இல்லை</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {mockActivityLog.slice(0, 8).map((a) => (
+              <div key={a._id} className="flex items-start gap-3 py-2 border-b border-border/30 last:border-0">
+                <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-foreground">
+                    <span className="font-bold">{a.farmerName}</span> — {a.action}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{a.hamlet} • {formatDate(a.createdAt)}</p>
+                </div>
               </div>
             ))}
           </div>
-        </Card>
-      )}
+        )}
+      </Card>
     </div>
   );
 };

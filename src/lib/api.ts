@@ -75,6 +75,31 @@ const defaultNotifications = [
 
 const defaultMarketPrice = { _id: "mp-1", broiler: 180, chick: 45, egg: 6.5, updatedBy: "Ravi Kumar (CRP)", updatedAt: daysAgo(1) };
 
+// ── Activity Log ─────────────────────────────────────────────────────────────
+export interface ActivityEntry {
+  _id: string;
+  farmerName: string;
+  hamlet: string;
+  action: string;
+  createdAt: string;
+}
+
+const defaultActivityLog: ActivityEntry[] = [
+  { _id: "act-1", farmerName: "Lakshmi S", hamlet: "வடுகப்பட்டு", action: "கோழி எண்ணிக்கை புதுப்பித்தார்", createdAt: daysAgo(0) },
+  { _id: "act-2", farmerName: "Lakshmi S", hamlet: "வடுகப்பட்டு", action: "கடன் கோரிக்கை அனுப்பினார் (₹8,000)", createdAt: daysAgo(3) },
+  { _id: "act-3", farmerName: "Lakshmi S", hamlet: "வடுகப்பட்டு", action: "நோய் அறிக்கை அனுப்பினார்", createdAt: daysAgo(5) },
+  { _id: "act-4", farmerName: "Lakshmi S", hamlet: "வடுகப்பட்டு", action: "உபகரண கோரிக்கை அனுப்பினார்", createdAt: daysAgo(7) },
+  { _id: "act-5", farmerName: "Lakshmi S", hamlet: "வடுகப்பட்டு", action: "கோழி எண்ணிக்கை புதுப்பித்தார்", createdAt: daysAgo(7) },
+];
+
+export const mockActivityLog: ActivityEntry[] = load("mock_activity", defaultActivityLog);
+
+function addActivity(farmerName: string, hamlet: string, action: string) {
+  mockActivityLog.unshift({ _id: `act-${Date.now()}`, farmerName, hamlet, action, createdAt: new Date().toISOString() });
+  if (mockActivityLog.length > 50) mockActivityLog.pop(); // keep last 50
+  save("mock_activity", mockActivityLog);
+}
+
 // ── Live state (loaded from localStorage, falls back to seed) ─────────────────
 export const mockBirdUpdates:     any[] = load("mock_birds",     defaultBirdUpdates);
 export const mockVaccinations:    any[] = load("mock_vax",       defaultVaccinations);
@@ -99,6 +124,7 @@ export const api = {
     const entry = { _id: `bu-${Date.now()}`, weekDate: thisWeek, createdAt: new Date().toISOString(), ...body };
     if (idx >= 0) mockBirdUpdates[idx] = entry; else mockBirdUpdates.unshift(entry);
     save("mock_birds", mockBirdUpdates);
+    addActivity("Lakshmi S", "வடுகப்பட்டு", "கோழி எண்ணிக்கை புதுப்பித்தார்");
     return entry;
   },
 
@@ -129,6 +155,7 @@ export const api = {
     };
     mockServiceDemands.push(entry);
     save("mock_demands", mockServiceDemands);
+    addActivity("Lakshmi S", "வடுகப்பட்டு", `${body.type} கோரிக்கை அனுப்பினார்${body.amount ? ` (₹${body.amount})` : ""}`);
     return entry;
   },
 
@@ -152,6 +179,7 @@ export const api = {
     const entry = { _id: `dr-${Date.now()}`, userId: "farmer-1", reportedAt: new Date().toISOString(), status: "Pending", ...body };
     mockDiseaseReports.unshift(entry);
     save("mock_disease", mockDiseaseReports);
+    addActivity("Lakshmi S", "வடுகப்பட்டு", "நோய் அறிக்கை அனுப்பினார்");
     return entry;
   },
 
