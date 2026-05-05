@@ -3,7 +3,8 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { mockVerifyOtp, User } from "@/lib/auth";
+import { verifyOtpAndLogin, User } from "@/lib/auth";
+import { api } from "@/lib/api";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,21 +45,26 @@ const OtpScreen = ({ phone, onVerified, onBack }: OtpScreenProps) => {
     if (code.length !== 6) return;
     setLoading(true);
     await new Promise((r) => setTimeout(r, 600));
-    const result = mockVerifyOtp(code);
+    const result = await verifyOtpAndLogin(code);
     setLoading(false);
     if (result.success && result.user) {
       toast.success("✅ " + t("done"));
       onVerified(result.user);
     } else {
-      toast.error("தவறான OTP. முயற்சி: 123456");
+      toast.error("தவறான OTP. மீண்டும் முயற்சிக்கவும்.");
       setOtp(["", "", "", "", "", ""]);
       refs.current[0]?.focus();
     }
   };
 
-  const handleResend = () => {
-    setResendTimer(30);
-    toast("OTP மீண்டும் அனுப்பப்பட்டது");
+  const handleResend = async () => {
+    try {
+      await api.sendOtp(phone);
+      setResendTimer(30);
+      toast("OTP மீண்டும் அனுப்பப்பட்டது");
+    } catch {
+      toast.error("மீண்டும் அனுப்ப முடியவில்லை");
+    }
   };
 
   const isComplete = otp.every((d) => d !== "");

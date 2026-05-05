@@ -5,11 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { HAMLETS, mockRegister } from "@/lib/auth";
+import { HAMLETS } from "@/lib/auth";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
+const SHG_NAMES = [
+  "Thendral SHG", "Suriya SHG", "Kaveri SHG", "Mullai SHG", "Poonkodi SHG",
+  "Rani SHG", "Vaigai SHG", "Malar SHG", "Kurinji SHG", "Thamarai SHG",
+];
+
 interface RegistrationScreenProps {
-  onNext: (data: { name: string; phone: string; hamlet: string; houseNo: string; street: string }) => void;
+  onNext: (data: {
+    name: string;
+    phone: string;
+    hamlet: string;
+    houseNo: string;
+    street: string;
+    shgName: string;
+  }) => void;
   onBack: () => void;
 }
 
@@ -20,16 +32,17 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
   const [houseNo, setHouseNo] = useState("");
   const [street, setStreet] = useState("");
   const [hamlet, setHamlet] = useState("");
+  const [shgName, setShgName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const isValid = name.trim() && phone.length === 10 && hamlet;
+  const isValid = name.trim() && phone.length === 10 && hamlet && shgName;
 
   const handleSubmit = async () => {
     if (!isValid) return;
     setLoading(true);
     await new Promise((r) => setTimeout(r, 400));
     setLoading(false);
-    onNext({ name, phone, hamlet, houseNo, street });
+    onNext({ name, phone, hamlet, houseNo, street, shgName });
   };
 
   return (
@@ -41,15 +54,19 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
       <h1 className="text-xl font-bold mb-5 text-center text-foreground">{t("registration")}</h1>
 
       <Card className="p-5 bg-card flex flex-col gap-4">
+
+        {/* Name */}
         <div className="grid grid-cols-[110px_1fr] items-center gap-3">
           <Label className="text-base font-medium">{t("fullName")} :</Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="tap-target text-base"
+            placeholder="உங்கள் பெயர்"
           />
         </div>
 
+        {/* Phone */}
         <div className="grid grid-cols-[110px_1fr] items-center gap-3">
           <Label className="text-base font-medium">{t("phoneNumber")} :</Label>
           <Input
@@ -58,12 +75,13 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
             className="tap-target text-base"
             inputMode="numeric"
             type="tel"
+            placeholder="9876543210"
           />
         </div>
 
+        {/* Address */}
         <div>
           <Label className="text-base font-medium mb-2 block">{t("address")} :</Label>
-
           <div className="pl-4 flex flex-col gap-3">
             <div className="grid grid-cols-[110px_1fr] items-center gap-3">
               <Label className="text-sm font-medium">{t("houseNo")}:</Label>
@@ -88,6 +106,22 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
             </div>
           </div>
         </div>
+
+        {/* SHG Group Name */}
+        <div className="grid grid-cols-[110px_1fr] items-center gap-3">
+          <Label className="text-base font-medium">{t("shgGroupName")} :</Label>
+          <Select value={shgName} onValueChange={setShgName}>
+            <SelectTrigger className="tap-target text-base">
+              <SelectValue placeholder="SHG குழுவை தேர்ந்தெடுக்கவும்" />
+            </SelectTrigger>
+            <SelectContent>
+              {SHG_NAMES.map((s) => (
+                <SelectItem key={s} value={s} className="text-base py-3">{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
       </Card>
 
       <Button

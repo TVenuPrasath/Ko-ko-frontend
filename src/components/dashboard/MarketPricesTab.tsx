@@ -1,11 +1,20 @@
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { getMarketPrice, formatTamilDate } from "@/lib/marketAndHistory";
-import { Drumstick, Egg, Bird, Share2 } from "lucide-react";
-import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { formatTamilDate } from "@/lib/marketAndHistory";
+import { Drumstick, Egg, Bird } from "lucide-react";
 
 const MarketPricesTab = () => {
-  const price = getMarketPrice();
+  const [price, setPrice] = useState<any>(null);
+
+  useEffect(() => {
+    api.getMarketPrice().then(setPrice).catch(() => {});
+    // re-fetch every 5s so CRP price updates reflect without full reload
+    const interval = setInterval(() => {
+      api.getMarketPrice().then(setPrice).catch(() => {});
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (!price) {
     return (
@@ -15,31 +24,10 @@ const MarketPricesTab = () => {
     );
   }
 
-  const handleShare = async () => {
-    const message = `🐔 கோ-கோ செயலி — இன்றைய சந்தை விலை\n\n` +
-      `🍗 கறிக்கோழி: ₹${price.broiler}/kg\n` +
-      `🐥 குஞ்சுகள்: ₹${price.chick}/குஞ்சு\n` +
-      `🥚 முட்டை: ₹${price.egg}/முட்டை\n\n` +
-      `புதுப்பித்தவர்: ${price.updatedBy}\n` +
-      `தேதி: ${formatTamilDate(price.updatedAt)}`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ text: message });
-      } catch {
-        // user cancelled
-      }
-    } else {
-      const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(url, "_blank");
-    }
-    toast.success("WhatsApp மூலம் பகிரப்பட்டது");
-  };
-
   const items = [
     { icon: Drumstick, label: "கறிக்கோழி விலை", value: `₹${price.broiler}`, unit: "/ kg" },
-    { icon: Bird, label: "குஞ்சுகள் விலை", value: `₹${price.chick}`, unit: "/ குஞ்சு" },
-    { icon: Egg, label: "முட்டை விலை", value: `₹${price.egg}`, unit: "/ முட்டை" },
+    { icon: Bird,      label: "குஞ்சுகள் விலை",  value: `₹${price.chick}`,   unit: "/ குஞ்சு" },
+    { icon: Egg,       label: "முட்டை விலை",      value: `₹${price.egg}`,     unit: "/ முட்டை" },
   ];
 
   return (
@@ -68,11 +56,6 @@ const MarketPricesTab = () => {
         <p>கடைசியாக புதுப்பிக்கப்பட்டது: {formatTamilDate(price.updatedAt)}</p>
         <p>புதுப்பித்தவர்: {price.updatedBy}</p>
       </Card>
-
-      <Button onClick={handleShare} className="tap-target w-full text-base font-bold bg-success text-success-foreground">
-        <Share2 size={18} className="mr-2" />
-        WhatsApp மூலம் பகிர்
-      </Button>
     </div>
   );
 };

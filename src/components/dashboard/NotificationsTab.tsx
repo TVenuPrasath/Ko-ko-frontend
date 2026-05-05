@@ -1,23 +1,22 @@
+import { useEffect, useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { getNotifications, formatDate } from "@/lib/mockData";
-import { Share2 } from "lucide-react";
+import { api } from "@/lib/api";
+import { formatDate } from "@/lib/mockData";
 
 const NotificationsTab = () => {
   const { t } = useLanguage();
-  const notifications = getNotifications();
+  const [notifications, setNotifications] = useState<any[]>([]);
 
-  const typeConfig = {
+  useEffect(() => {
+    api.getNotifications().then(setNotifications).catch(() => {});
+  }, []);
+
+  const typeConfig: Record<string, { label: string; className: string }> = {
     disease: { label: t("diseaseAlert"), className: "bg-danger text-danger-foreground" },
-    market: { label: t("marketPrice"), className: "bg-success text-success-foreground" },
-    tip: { label: t("farmingTip"), className: "bg-primary text-primary-foreground" },
-  };
-
-  const handleShare = (message: string) => {
-    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
+    market:  { label: t("marketPrice"), className: "bg-success text-success-foreground" },
+    tip:     { label: t("farmingTip"),  className: "bg-primary text-primary-foreground" },
   };
 
   if (notifications.length === 0) {
@@ -32,22 +31,14 @@ const NotificationsTab = () => {
   return (
     <div className="flex flex-col gap-3">
       {notifications.map((n) => {
-        const config = typeConfig[n.type];
+        const config = typeConfig[n.type] ?? { label: n.type, className: "bg-muted text-foreground" };
         return (
-          <Card key={n.id} className="p-4 bg-card">
+          <Card key={n._id} className="p-4 bg-card">
             <div className="flex items-start justify-between mb-2">
               <Badge className={config.className}>{config.label}</Badge>
               <span className="text-xs text-muted-foreground">{formatDate(n.createdAt)}</span>
             </div>
-            <p className="text-base text-foreground mb-3 leading-relaxed">{n.message}</p>
-            <Button
-              onClick={() => handleShare(n.message)}
-              variant="outline"
-              className="tap-target gap-2 text-success border-success"
-              size="sm"
-            >
-              <Share2 size={16} /> WhatsApp {t("share")}
-            </Button>
+            <p className="text-base text-foreground leading-relaxed">{n.message}</p>
           </Card>
         );
       })}

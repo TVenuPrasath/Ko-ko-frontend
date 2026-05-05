@@ -3,27 +3,28 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { mockLogin } from "@/lib/auth";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { loginWithPhone, User } from "@/lib/auth";
+import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 interface LoginScreenProps {
-  onOtp: (phone: string) => void;
+  onSuccess: (user: User) => void;
   onBack: () => void;
 }
 
-const LoginScreen = ({ onOtp, onBack }: LoginScreenProps) => {
+const LoginScreen = ({ onSuccess, onBack }: LoginScreenProps) => {
   const { t } = useLanguage();
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState("SHG Member");
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (phone.length !== 10) return;
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    mockLogin(phone, role);
-    setLoading(false);
-    onOtp(phone);
+    const result = loginWithPhone(phone);
+    if (result.success && result.user) {
+      toast.success("✅ உள்நுழைவு வெற்றி");
+      onSuccess(result.user);
+    } else {
+      toast.error("இந்த எண் பதிவு செய்யப்படவில்லை");
+    }
   };
 
   return (
@@ -32,19 +33,6 @@ const LoginScreen = ({ onOtp, onBack }: LoginScreenProps) => {
         <ArrowLeft size={20} /> {t("back")}
       </button>
       <h1 className="text-2xl font-bold mb-6 text-foreground">{t("login")}</h1>
-
-      <div className="mb-4">
-        <Label className="text-base font-medium mb-2 block">{t("selectRole")}</Label>
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="w-full border border-input rounded-md px-3 py-3 text-base bg-card text-foreground"
-        >
-          <option value="SHG Member">{t("shgMember")}</option>
-          <option value="CRP">{t("crpStaff")}</option>
-          <option value="Buyer">{t("buyer")}</option>
-        </select>
-      </div>
 
       <div>
         <Label className="text-base font-medium mb-2 block">{t("phoneNumber")}</Label>
@@ -58,12 +46,18 @@ const LoginScreen = ({ onOtp, onBack }: LoginScreenProps) => {
         />
       </div>
 
+      <div className="mt-3 p-3 bg-muted/40 rounded-md text-xs text-muted-foreground">
+        <p className="font-medium mb-1">Demo Accounts:</p>
+        <p>👩‍🌾 Farmer — <span className="font-mono">9842100001</span></p>
+        <p>👷 CRP — <span className="font-mono">9876500000</span></p>
+      </div>
+
       <Button
         onClick={handleSubmit}
-        disabled={phone.length !== 10 || loading}
+        disabled={phone.length !== 10}
         className="tap-target w-full text-lg font-semibold mt-8 bg-primary text-primary-foreground"
       >
-        {loading ? <Loader2 className="animate-spin" size={20} /> : t("sendOtp")}
+        {t("login")}
       </Button>
     </div>
   );

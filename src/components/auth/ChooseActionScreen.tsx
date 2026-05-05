@@ -4,32 +4,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { mockLogin } from "@/lib/auth";
+import { mockLogin, loginWithPhone } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface ChooseActionScreenProps {
   onRegister: () => void;
-  onOtp: (phone: string, role: string) => void;
+  onLogin: (user: any) => void;
 }
 
-const ChooseActionScreen = ({ onRegister, onOtp }: ChooseActionScreenProps) => {
+const ChooseActionScreen = ({ onRegister, onLogin }: ChooseActionScreenProps) => {
   const { t } = useLanguage();
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState("SHG Member");
   const [loading, setLoading] = useState(false);
 
-  const handleSendOtp = async () => {
+  const handleLogin = async () => {
     if (phone.length !== 10) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    mockLogin(phone, role);
+    mockLogin(phone);
+    const result = await loginWithPhone();
     setLoading(false);
-    onOtp(phone, role);
+    if (result.success && result.user) {
+      toast.success("வணக்கம்! ✅");
+      onLogin(result.user);
+    } else {
+      toast.error("உள் நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.");
+    }
   };
 
   return (
     <div className="flex flex-col min-h-screen p-5 gap-5">
-      {/* Top — Logo + App name */}
+      {/* Logo + App name */}
       <Card className="p-5 flex items-center gap-4 bg-card">
         <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center text-3xl shrink-0">
           🐔
@@ -40,7 +45,7 @@ const ChooseActionScreen = ({ onRegister, onOtp }: ChooseActionScreenProps) => {
         </div>
       </Card>
 
-      {/* New user button */}
+      {/* New user registration */}
       <Button
         onClick={onRegister}
         variant="outline"
@@ -49,22 +54,9 @@ const ChooseActionScreen = ({ onRegister, onOtp }: ChooseActionScreenProps) => {
         {t("newRegistration")}
       </Button>
 
-      {/* Login / OTP block */}
+      {/* Login — phone only */}
       <Card className="p-5 bg-card flex flex-col gap-4">
-        <p className="text-sm italic text-muted-foreground text-center">LOG IN / OTP SCREEN</p>
-
-        <div>
-          <Label className="text-base font-medium mb-2 block">{t("selectRole")}</Label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="w-full border border-input rounded-md px-3 py-3 text-base bg-card text-foreground"
-          >
-            <option value="SHG Member">{t("userTypeFarmer")}</option>
-            <option value="CRP">{t("userTypeStaff")}</option>
-            <option value="Buyer">{t("buyer")}</option>
-          </select>
-        </div>
+        <p className="text-sm font-bold text-foreground text-center">{t("login")}</p>
 
         <div>
           <Label className="text-base font-medium mb-2 block">{t("phoneNumber")} :</Label>
@@ -79,11 +71,11 @@ const ChooseActionScreen = ({ onRegister, onOtp }: ChooseActionScreenProps) => {
         </div>
 
         <Button
-          onClick={handleSendOtp}
+          onClick={handleLogin}
           disabled={phone.length !== 10 || loading}
           className="tap-target w-full text-lg font-semibold bg-primary text-primary-foreground"
         >
-          {loading ? <Loader2 className="animate-spin" size={20} /> : t("sendOtp")}
+          {loading ? <Loader2 className="animate-spin" size={20} /> : t("login")}
         </Button>
       </Card>
     </div>

@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { HAMLETS } from "@/lib/auth";
-import { getMockFarmers, getAllServiceDemands } from "@/lib/crpMockData";
+import { getMockFarmers } from "@/lib/crpMockData";
 import { formatDate } from "@/lib/mockData";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, IndianRupee } from "lucide-react";
 
 const CrpServicesTab = () => {
   const { t } = useLanguage();
@@ -34,29 +35,58 @@ const CrpServicesTab = () => {
 
   const handleVaxSave = async () => {
     setVaxLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
+    await api.addVaccination({
+      userId: vaxFarmer,
+      type: vaccineType.toLowerCase().includes("smallpox") ? "smallpox" : "white_diarrhea",
+      ageGroup: vaccineType,
+      dateGiven: vaxDate,
+      nextDueDate: vaxNextDue,
+      status: "completed",
+    });
     setVaxLoading(false);
-    toast.success(t("saved") + " ✅");
+    toast.success(t("saved") + " ✅ தடுப்பூசி பதிவு சேமிக்கப்பட்டது");
     setVaxFarmer("");
     setVaxNextDue("");
   };
 
   const handleDewSave = async () => {
     setDewLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
+    await api.addVaccination({
+      userId: dewFarmer,
+      type: "deworming",
+      dateGiven: dewDate,
+      nextDueDate: dewNextDue,
+      status: "completed",
+    });
     setDewLoading(false);
-    toast.success(t("saved") + " ✅");
+    toast.success(t("saved") + " ✅ குடற்புழு நீக்கம் பதிவு சேமிக்கப்பட்டது");
     setDewFarmer("");
     setDewNextDue("");
   };
 
-  const demands = getAllServiceDemands();
-  const pendingDemands = demands.filter((d) => d.status === "Pending");
-  const [demandStatuses, setDemandStatuses] = useState<Record<string, string>>({});
+  const [allDemands, setAllDemands] = useState<any[]>([]);
+  const [refresh, setRefresh] = useState(0);
+  useEffect(() => {
+    api.getAllServiceDemands().then(setAllDemands).catch(() => {});
+  }, [refresh]);
 
-  const toggleDemand = (id: string) => {
-    setDemandStatuses((prev) => ({ ...prev, [id]: "Completed" }));
-    toast.success(t("completed") + " ✅");
+  const pendingDemands = allDemands.filter((d) => d.status === "Pending" && ["Feed Stock", "Equipment", "Vaccination"].includes(d.type));
+  const loanDemands = allDemands.filter((d) => d.type === "Loan");
+
+  const handleApprove = async (id: string) => {
+    try {
+      await api.completeServiceDemand(id);
+      setRefresh((k) => k + 1);
+      toast.success("அனுமதிக்கப்பட்டது ✅");
+    } catch { toast.error("Failed"); }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await api.rejectServiceDemand(id);
+      setRefresh((k) => k + 1);
+      toast.success("நிராகரிக்கப்பட்டது ❌");
+    } catch { toast.error("Failed"); }
   };
 
   return (
@@ -118,28 +148,97 @@ const CrpServicesTab = () => {
         </div>
       </Card>
 
-      {/* Pending Service Demands */}
+      {/* Pending Service Demands — Feed, Equipment, Vaccination, Deworming */}
       <Card className="p-5 bg-card">
-        <h2 className="text-lg font-bold mb-4 text-foreground">{t("pendingServiceDemands")}</h2>
+        <h2 className="text-lg font-bold mb-4 text-foreground">விவசாயி கோரிக்கைகள் (Feed / Equipment / Vaccination)</h2>
         {pendingDemands.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("noData")}</p>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {pendingDemands.map((d) => (
-              <div key={d.id} className="flex items-center justify-between py-2 border-b border-border/30">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{d.farmerName} — {d.type}</p>
-                  <p className="text-xs text-muted-foreground">{d.hamlet} • Qty: {d.quantity} • {formatDate(d.createdAt)}</p>
+              <div key={d._id} className="border border-border rounded-lg p-3">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-bold text-foreground">{d.userId?.name || d.farmerName}</p>
+                    <p className="text-xs text-muted-foreground">{d.userId?.hamlet || d.hamlet} • {formatDate(d.createdAt)}</p>
+                  </div>
+                  <Badge className="bg-warning text-warning-foreground">{d.type}</Badge>
                 </div>
-                {demandStatuses[d.id] === "Completed" ? (
-                  <Badge className="bg-success text-success-foreground">{t("completed")}</Badge>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={() => toggleDemand(d.id)} className="text-xs">
-                    {t("markCompleted")}
+                <p className="text-xs text-muted-foreground mb-3">Qty: {d.quantity}{d.notes ? ` • ${d.notes}` : ""}</p>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => handleApprove(d._id)} className="flex-1 bg-success text-success-foreground text-xs">
+                    ✅ அனுமதி
                   </Button>
-                )}
+                  <Button size="sm" variant="outline" onClick={() => handleReject(d._id)} className="flex-1 border-danger text-danger text-xs">
+                    ❌ நிராகரி
+                  </Button>
+                </div>
               </div>
             ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Credit / Loan Demands — separate section */}
+      <Card className="p-5 bg-card border-2 border-warning/40">
+        <div className="flex items-center gap-2 mb-4">
+          <IndianRupee size={20} className="text-warning" />
+          <h2 className="text-lg font-bold text-foreground">கடன் கோரிக்கைகள் (Credit / Loan Demands)</h2>
+        </div>
+
+        {loanDemands.length === 0 ? (
+          <p className="text-sm text-muted-foreground">கடன் கோரிக்கைகள் இல்லை</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {loanDemands.map((d: any) => {
+              const statusConfig: Record<string, { label: string; className: string }> = {
+                Pending:   { label: "🟡 நிலுவையில்",        className: "bg-warning text-warning-foreground" },
+                Completed: { label: "🟢 அனுமதிக்கப்பட்டது", className: "bg-success text-success-foreground" },
+                Rejected:  { label: "🔴 நிராகரிக்கப்பட்டது", className: "bg-danger text-danger-foreground" },
+              };
+              const config = statusConfig[d.status] ?? statusConfig.Pending;
+              return (
+                <div key={d._id} className="border border-border rounded-lg p-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="text-sm font-bold text-foreground">
+                        {d.userId?.name || d.farmerName || "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {d.userId?.hamlet || d.hamlet || ""} • {formatDate(d.createdAt)}
+                      </p>
+                    </div>
+                    <Badge className={config.className}>{config.label}</Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xl font-bold text-warning">₹{(d.amount || 0).toLocaleString("ta-IN")}</p>
+                      {d.notes && <p className="text-xs text-muted-foreground mt-0.5">{d.notes}</p>}
+                    </div>
+                    {d.status === "Pending" && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApprove(d._id)}
+                          className="bg-success text-success-foreground text-xs"
+                        >
+                          அனுமதி
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleReject(d._id)}
+                          className="border-danger text-danger text-xs"
+                        >
+                          நிராகரி
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>

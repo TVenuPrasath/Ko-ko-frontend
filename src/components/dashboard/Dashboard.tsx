@@ -1,20 +1,22 @@
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { User, clearUser } from "@/lib/auth";
-import { Home, ClipboardList, Bug, Bell, LogOut, History, IndianRupee } from "lucide-react";
+import { Home, ClipboardList, Bug, Bell, LogOut, History, IndianRupee, HandHelping } from "lucide-react";
 import HomeTab from "./HomeTab";
 import WeeklyUpdateTab from "./WeeklyUpdateTab";
 import DiseaseReportTab from "./DiseaseReportTab";
 import NotificationsTab from "./NotificationsTab";
 import VaccinationHistoryTab from "./VaccinationHistoryTab";
 import MarketPricesTab from "./MarketPricesTab";
+import LoanRequestTab from "./LoanRequestTab";
+import ServiceRequestTab from "./ServiceRequestTab";
 
 interface DashboardProps {
   user: User;
   onLogout: () => void;
 }
 
-type Tab = "home" | "weekly" | "disease" | "history" | "prices" | "notifications";
+type Tab = "home" | "weekly" | "disease" | "history" | "prices" | "notifications" | "loan" | "requests";
 
 const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const { t } = useLanguage();
@@ -29,7 +31,8 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
     { key: "home", icon: Home, label: t("home") },
     { key: "weekly", icon: ClipboardList, label: t("weeklyUpdate") },
     { key: "history", icon: History, label: "தடுப்பூசி" },
-    { key: "prices", icon: IndianRupee, label: "சந்தை விலை" },
+    { key: "loan", icon: IndianRupee, label: "கடன்" },
+    { key: "requests", icon: HandHelping, label: "கோரிக்கை" },
     { key: "notifications", icon: Bell, label: t("notifications") },
   ];
 
@@ -52,20 +55,22 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         {tab === "history" && <VaccinationHistoryTab />}
         {tab === "prices" && <MarketPricesTab />}
         {tab === "notifications" && <NotificationsTab />}
+        {tab === "loan" && <LoanRequestTab />}
+        {tab === "requests" && <ServiceRequestTab />}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-10">
-        <div className="max-w-[430px] mx-auto flex">
+        <div className="max-w-[430px] mx-auto flex overflow-x-auto scrollbar-none">
           {tabs.map(({ key, icon: Icon, label }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`flex-1 flex flex-col items-center py-2 gap-1 tap-target ${
+              className={`flex-shrink-0 flex flex-col items-center py-2 px-3 gap-1 tap-target ${
                 tab === key ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <Icon size={20} />
-              <span className="text-[10px] font-medium leading-tight text-center">{label}</span>
+              <span className="text-[9px] font-medium leading-tight text-center whitespace-nowrap">{label}</span>
             </button>
           ))}
         </div>

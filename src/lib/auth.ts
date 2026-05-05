@@ -16,6 +16,28 @@ export const HAMLETS = [
 
 export const PLF_GROUPS = ["குழு 1", "குழு 2", "குழு 3", "குழு 4", "குழு 5"];
 
+// Known accounts — login by phone number
+const MOCK_USERS: User[] = [
+  {
+    userId: "farmer-1",
+    name: "Lakshmi S",
+    phone: "9842100001",
+    hamlet: "வடுகப்பட்டு",
+    shgName: "Thendral SHG",
+    role: "SHG Member",
+    approved: true,
+  },
+  {
+    userId: "crp-1",
+    name: "Ravi Kumar",
+    phone: "9876500000",
+    hamlet: "கோணாங்கிப்பட்டி",
+    shgName: "",
+    role: "CRP",
+    approved: true,
+  },
+];
+
 export function getUser(): User | null {
   const data = localStorage.getItem("user");
   return data ? JSON.parse(data) : null;
@@ -29,40 +51,20 @@ export function clearUser() {
   localStorage.removeItem("user");
 }
 
-let registrationData: any = null;
-
-export function mockRegister(data: {
-  name: string;
-  phone: string;
-  hamlet: string;
-  shgName: string;
-  role?: string;
-  houseNo?: string;
-  street?: string;
-}) {
-  registrationData = data;
-  return { success: true, phone: data.phone };
+export function loginWithPhone(phone: string): { success: boolean; user?: User } {
+  const user = MOCK_USERS.find((u) => u.phone === phone);
+  if (!user) return { success: false };
+  setUser(user);
+  return { success: true, user };
 }
 
-export function mockLogin(phone: string, role?: string) {
-  registrationData = { phone, role: role || "SHG Member" };
+// kept for compat
+export function mockLogin(phone: string) {
   return { success: true, phone };
 }
-
-export function mockVerifyOtp(otp: string): { success: boolean; user?: User } {
-  if (otp === "123456") {
-    const role = registrationData?.role || "SHG Member";
-    const user: User = {
-      userId: crypto.randomUUID(),
-      name: registrationData?.name || (role === "CRP" ? "நிர்வாகி" : role === "Buyer" ? "வாங்குபவர்" : "பயனர்"),
-      phone: registrationData?.phone || "",
-      hamlet: registrationData?.hamlet || HAMLETS[0],
-      shgName: registrationData?.shgName || "",
-      role,
-      approved: true,
-    };
-    setUser(user);
-    return { success: true, user };
-  }
+export function mockRegister(data: { name: string; phone: string; hamlet: string; shgName: string }) {
+  return { success: true, phone: data.phone };
+}
+export async function verifyOtpAndLogin(_otp: string): Promise<{ success: boolean; user?: User }> {
   return { success: false };
 }

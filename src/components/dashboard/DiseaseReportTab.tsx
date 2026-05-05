@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { addDiseaseReport, getDiseaseReports, formatDate } from "@/lib/mockData";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/lib/api";
+import { formatDate } from "@/lib/mockData";
 import { User } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,8 +32,14 @@ const DiseaseReportTab = ({ user }: DiseaseReportTabProps) => {
   const [symptoms, setSymptoms] = useState<Record<string, boolean>>({});
   const [affected, setAffected] = useState("");
   const [death, setDeath] = useState("");
+  const [otherNote, setOtherNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [reports, setReports] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.getDiseaseReports().then(setReports).catch(() => {});
+  }, [refreshKey]);
 
   const toggleSymptom = (key: string) => {
     setSymptoms((s) => ({ ...s, [key]: !s[key] }));
@@ -39,23 +47,31 @@ const DiseaseReportTab = ({ user }: DiseaseReportTabProps) => {
 
   const handleSubmit = async () => {
     const selected = SYMPTOM_KEYS.filter((k) => symptoms[k]).map((k) => t(k));
-    if (selected.length === 0 && !affected && !death) {
+    if (selected.length === 0 && !affected && !death && !otherNote) {
       toast.error("ஒரு அறிகுறியையாவது தேர்ந்தெடுக்கவும்");
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    const desc = `அறிகுறிகள்: ${selected.join(", ") || "—"} | நோய்வாய்: ${affected || 0} | இறப்பு: ${death || 0}`;
-    addDiseaseReport({ description: desc });
-    setLoading(false);
-    toast.success(t("reportSent") + " ✅");
-    setSymptoms({});
-    setAffected("");
-    setDeath("");
-    setRefreshKey((k) => k + 1);
+    try {
+      const parts = [];
+      if (selected.length > 0) parts.push(`அறிகுறிகள்: ${selected.join(", ")}`);
+      if (otherNote.trim()) parts.push(`கூடுதல் குறிப்பு: ${otherNote.trim()}`);
+      parts.push(`நோய்வாய்: ${affected || 0}`);
+      parts.push(`இறப்பு: ${death || 0}`);
+      const desc = parts.join(" | ");
+      await api.submitDiseaseReport({ description: desc });
+      toast.success(t("reportSent") + " ✅");
+      setSymptoms({});
+      setAffected("");
+      setDeath("");
+      setOtherNote("");
+      setRefreshKey((k) => k + 1);
+    } catch (err: any) {
+      toast.error(err.message || "Submit failed");
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const reports = getDiseaseReports();
 
   return (
     <div className="flex flex-col gap-5" key={refreshKey}>
@@ -67,7 +83,11 @@ const DiseaseReportTab = ({ user }: DiseaseReportTabProps) => {
 
         <div className="mb-3">
           <p className="text-xs font-medium text-muted-foreground">{t("hamlet")}</p>
-          <p className="text-sm font-medium text-foreground bg-muted px-3 py-1.5 rounded-md mt-0.5">{user.hamlet}</p>
+          <Input
+            value={user.hamlet}
+            readOnly
+            className="mt-0.5 bg-muted text-foreground"
+          />
         </div>
 
         <p className="text-sm font-medium text-foreground mb-2">{t("symptoms")}</p>
@@ -103,6 +123,16 @@ const DiseaseReportTab = ({ user }: DiseaseReportTabProps) => {
               className="w-24 text-center text-base"
             />
           </div>
+          <div className="flex flex-col gap-1 mt-1">
+            <span className="text-sm text-foreground">கூடுதல் குறிப்பு / Other notes</span>
+            <Textarea
+              value={otherNote}
+              onChange={(e) => setOtherNote(e.target.value)}
+              placeholder="எ.கா. கோழிகள் தீவனம் சாப்பிடவில்லை, வேறு நோய் அறிகுறிகள்..."
+              rows={3}
+              className="text-sm resize-none"
+            />
+          </div>
         </div>
 
         <Button
@@ -114,13 +144,12 @@ const DiseaseReportTab = ({ user }: DiseaseReportTabProps) => {
         </Button>
       </Card>
 
-      {/* Past Reports */}
       {reports.length > 0 && (
         <div>
           <h2 className="text-base font-bold mb-3 text-foreground">{t("myPastReports")}</h2>
           <div className="flex flex-col gap-3">
             {reports.map((r) => (
-              <Card key={r.id} className="p-3 bg-card">
+              <Card key={r._id} className="p-3 bg-card">
                 <div className="flex items-start justify-between mb-1">
                   <p className="text-xs text-muted-foreground">{formatDate(r.reportedAt)}</p>
                   <Badge className={r.status === "Reviewed" ? "bg-success text-success-foreground" : "bg-warning text-warning-foreground"}>

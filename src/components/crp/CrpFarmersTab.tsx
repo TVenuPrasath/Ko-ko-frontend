@@ -8,7 +8,6 @@ import { HAMLETS } from "@/lib/auth";
 import { getMockFarmers, Farmer } from "@/lib/crpMockData";
 import { formatDate } from "@/lib/mockData";
 import { ArrowLeft, Search } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 const CrpFarmersTab = () => {
   const { t } = useLanguage();
@@ -20,13 +19,6 @@ const CrpFarmersTab = () => {
   const perPage = 10;
 
   if (selectedFarmer) {
-    const chartData = selectedFarmer.birdUpdates.slice(0, 8).reverse().map((u) => ({
-      week: formatDate(u.weekDate),
-      [t("chicks")]: u.chicks,
-      [t("growers")]: u.growers,
-      [t("layers")]: u.layers,
-      [t("broilers")]: u.broilers,
-    }));
 
     return (
       <div className="flex flex-col gap-4">
@@ -38,23 +30,35 @@ const CrpFarmersTab = () => {
           <p className="text-sm text-muted-foreground">{selectedFarmer.hamlet} • {selectedFarmer.shgName} • {selectedFarmer.phone}</p>
         </Card>
 
-        {/* Bird Update Chart */}
+        {/* Bird Update History */}
         <Card className="p-4 bg-card">
           <h3 className="text-base font-bold mb-3 text-foreground">{t("birdUpdateHistory")}</h3>
-          {chartData.length > 0 ? (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(50 10% 85%)" />
-                  <XAxis dataKey="week" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey={t("chicks")} fill="hsl(100 72% 24%)" />
-                  <Bar dataKey={t("growers")} fill="hsl(36 76% 41%)" />
-                  <Bar dataKey={t("layers")} fill="hsl(142 71% 45%)" />
-                  <Bar dataKey={t("broilers")} fill="hsl(0 72% 51%)" />
-                </BarChart>
-              </ResponsiveContainer>
+          {selectedFarmer.birdUpdates.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2 text-muted-foreground font-medium">{t("week")}</th>
+                    <th className="text-center py-2 text-muted-foreground font-medium">{t("chicks")}</th>
+                    <th className="text-center py-2 text-muted-foreground font-medium">{t("growers")}</th>
+                    <th className="text-center py-2 text-muted-foreground font-medium">{t("layers")}</th>
+                    <th className="text-center py-2 text-muted-foreground font-medium">{t("broilers")}</th>
+                    <th className="text-center py-2 text-muted-foreground font-medium">{t("total")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedFarmer.birdUpdates.slice(0, 8).map((u) => (
+                    <tr key={u.id} className="border-b border-border/50">
+                      <td className="py-2 text-foreground">{formatDate(u.weekDate)}</td>
+                      <td className="text-center py-2">{u.chicks}</td>
+                      <td className="text-center py-2">{u.growers}</td>
+                      <td className="text-center py-2">{u.layers}</td>
+                      <td className="text-center py-2">{u.broilers}</td>
+                      <td className="text-center py-2 font-bold">{u.chicks + u.growers + u.layers + u.broilers}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : <p className="text-sm text-muted-foreground">{t("noData")}</p>}
         </Card>
