@@ -1,13 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getMockFarmers, getAggregatedStock } from "@/lib/crpMockData";
-import { mockServiceDemands, mockDiseaseReports, mockVaccinations, mockBirdUpdates, api } from "@/lib/api";
+import { api } from "@/lib/api";
 import { formatDate } from "@/lib/mockData";
-import { Download, FileText } from "lucide-react";
-import { toast } from "sonner";
+import { Download, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
 
 function downloadExcel(headers: string[], rows: (string | number)[][], filename: string) {
@@ -17,360 +16,240 @@ function downloadExcel(headers: string[], rows: (string | number)[][], filename:
   XLSX.writeFile(wb, `${filename}.xlsx`);
 }
 
-function downloadPDF(title: string, headers: string[], rows: (string | number)[][], filename: string) {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const marginL = 14;
-  const usableW = 277 - marginL * 2;
-  const colW = Math.floor(usableW / headers.length);
-  let y = 20;
+async function downloadPDF(title: string, headers: string[], rows: (string | number)[][], filename: string) {
+  const container = document.createElement("div");
+  container.style.cssText = "position:fixed;left:-9999px;top:0;background:#fff;padding:16px;font-family:sans-serif;width:900px";
 
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(title, marginL, y);
-  y += 8;
+  const titleEl = document.createElement("h2");
+  titleEl.style.cssText = "font-size:16px;font-weight:bold;margin-bottom:12px;color:#111";
+  titleEl.textContent = title;
+  container.appendChild(titleEl);
 
-  doc.setFontSize(8);
-  doc.setFillColor(200, 200, 200);
-  doc.rect(marginL, y - 4, usableW, 7, "F");
-  headers.forEach((h, i) => doc.text(h, marginL + i * colW, y));
-  y += 8;
+  const table = document.createElement("table");
+  table.style.cssText = "width:100%;border-collapse:collapse;font-size:12px";
 
-  doc.setFont("helvetica", "normal");
-  rows.forEach((row) => {
-    if (y > 190) { doc.addPage(); y = 20; }
-    row.forEach((cell, i) => doc.text(String(cell ?? "-"), marginL + i * colW, y));
-    y += 6;
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  headers.forEach((h) => {
+    const th = document.createElement("th");
+    th.style.cssText = "background:#e5e7eb;padding:6px 8px;text-align:left;border:1px solid #d1d5db;font-weight:600;color:#111";
+    th.textContent = h;
+    headerRow.appendChild(th);
   });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
 
-  doc.save(`${filename}.pdf`);
+  const tbody = document.createElement("tbody");
+  rows.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    tr.style.background = i % 2 === 0 ? "#fff" : "#f9fafb";
+    row.forEach((cell) => {
+      const td = document.createElement("td");
+      td.style.cssText = "padding:5px 8px;border:1px solid #e5e7eb;color:#111";
+      td.textContent = String(cell ?? "-");
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.appendChild(table);
+  document.body.appendChild(container);
+
+  const canvas = await html2canvas(container, { scale: 2, useCORS: true });
+  document.body.removeChild(container);
+
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? "landscape" : "portrait", unit: "px", format: [canvas.width / 2, canvas.height / 2] });
+  pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+  pdf.save(`${filename}.pdf`);
 }
 
-function ExportButtons({ onExcel, onPdf }: { onExcel: () => void; onPdf: () => void }) {
+function ExportButtons({ onExcel, onPdf }: { onExcel: () => void; onPdf: () => Promise<void> }) {
+  const [loading, setLoading] = useState(false);
+  const handlePdf = async () => { setLoading(true); await onPdf(); setLoading(false); };
   return (
     <div className="flex gap-2 mt-3">
       <Button size="sm" onClick={onExcel} className="gap-1 bg-success text-success-foreground flex-1">
         <Download size={13} /> Excel
       </Button>
-      <Button size="sm" onClick={onPdf} variant="outline" className="gap-1 flex-1">
-        <FileText size={13} /> PDF
+      <Button size="sm" onClick={handlePdf} disabled={loading} variant="outline" className="gap-1 flex-1">
+        <FileText size={13} /> {loading ? "உருவாக்குகிறது..." : "PDF"}
       </Button>
     </div>
   );
 }
 
+function Section({ title, count, defaultOpen = true, children, onExcel, onPdf }: {
+  title: string; count?: number; defaultOpen?: boolean;
+  children: React.ReactNode; onExcel: () => void; onPdf: () => Promise<void>;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Card className="p-4 bg-card">
+      <button className="w-full flex items-center justify-between" onClick={() => setOpen(!open)}>
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-bold text-foreground">{title}</h3>
+          {count !== undefined && <Badge className="bg-muted text-muted-foreground text-xs">{count}</Badge>}
+        </div>
+        {open ? <ChevronUp size={18} className="text-muted-foreground" /> : <ChevronDown size={18} className="text-muted-foreground" />}
+      </button>
+      {open && <div className="mt-3">{children}</div>}
+      <ExportButtons onExcel={onExcel} onPdf={onPdf} />
+    </Card>
+  );
+}
+
 const CrpReportsTab = () => {
-  const farmers = getMockFarmers();
-  const stock = getAggregatedStock();
+  const [farmers, setFarmers] = useState<any[]>([]);
+  const [demands, setDemands] = useState<any[]>([]);
+  const [diseaseReports, setDiseaseReports] = useState<any[]>([]);
+  const [vaccinations, setVaccinations] = useState<any[]>([]);
+  const [birdUpdates, setBirdUpdates] = useState<any[]>([]);
+  const [saleStocks, setSaleStocks] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.getFarmers().then(setFarmers).catch(() => {});
+    api.getAllServiceDemands().then(setDemands).catch(() => {});
+    api.getAllDiseaseReports().then(setDiseaseReports).catch(() => {});
+    api.getAllVaccinations().then(setVaccinations).catch(() => {});
+    api.getAllBirdUpdates().then(setBirdUpdates).catch(() => {});
+    api.getSaleStocks().then(setSaleStocks).catch(() => {});
+  }, []);
+
   const today = new Date();
-  const [diseaseRefresh, setDiseaseRefresh] = useState(0);
 
-  // 1. Bird Stock
-  const stockRowsTamil: (string | number)[][] = [
-    ["குஞ்சுகள்", stock.chicks],
-    ["வளர்ச்சி", stock.growers],
-    ["முட்டையிடும்", stock.layers],
-    ["கறிக்கோழி", stock.broilers],
-    ["மொத்தம்", stock.total],
-  ];
-  const stockRowsEn: (string | number)[][] = [
-    ["Chicks", stock.chicks],
-    ["Growers", stock.growers],
-    ["Layers", stock.layers],
-    ["Broilers", stock.broilers],
-    ["Total", stock.total],
-  ];
+  const farmerRows: (string | number)[][] = farmers.map((f) => [f.name, f.phone, f.hamlet, f.shg_name || "-"]);
+  const farmerHeadersTamil = ["பெயர்", "தொலைபேசி", "ஊர்", "SHG"];
+  const farmerHeadersEn = ["Name", "Phone", "Hamlet", "SHG"];
 
-  // 2. Farmer Data
-  const farmerHeadersTamil = ["பெயர்", "தொலைபேசி", "ஊர்", "SHG", "மொத்த கோழிகள்"];
-  const farmerHeadersEn = ["Name", "Phone", "Hamlet", "SHG", "Total Birds"];
-  const farmerRows: (string | number)[][] = farmers.map((f) => {
-    const latest = f.birdUpdates[0];
-    const total = latest ? latest.chicks + latest.growers + latest.layers + latest.broilers : 0;
-    return [f.name, f.phone, f.hamlet, f.shgName, total];
-  });
-
-  // 3. Service Demands
   const demandTypes = ["Loan", "Feed Stock", "Equipment", "Vaccination", "Deworming"];
+  const demandRows: (string | number)[][] = demandTypes.map((type) => {
+    const all = demands.filter((d) => d.type === type);
+    return [type, all.length, all.filter((d) => d.status === "Pending").length, all.filter((d) => d.status === "Completed").length, all.filter((d) => d.status === "Rejected").length];
+  });
   const demandHeadersTamil = ["வகை", "மொத்தம்", "நிலுவை", "நிறைவு", "நிராகரிப்பு"];
   const demandHeadersEn = ["Type", "Total", "Pending", "Completed", "Rejected"];
-  const demandRows: (string | number)[][] = demandTypes.map((type) => {
-    const all = mockServiceDemands.filter((d) => d.type === type);
-    return [type, all.length,
-      all.filter((d) => d.status === "Pending").length,
-      all.filter((d) => d.status === "Completed").length,
-      all.filter((d) => d.status === "Rejected").length,
-    ];
-  });
 
-  // 4. Disease Reports
+  const pendingDisease = diseaseReports.filter((r) => r.status === "Pending");
+  const diseaseRows: (string | number)[][] = diseaseReports.map((r) => [r.userId?.name || "-", formatDate(r.reportedAt), r.description, r.status]);
   const diseaseHeadersTamil = ["விவசாயி", "தேதி", "விவரம்", "நிலை"];
   const diseaseHeadersEn = ["Farmer", "Date", "Description", "Status"];
-  const diseaseRowsTamil: (string | number)[][] = mockDiseaseReports.map((r) => [
-    farmers.find((f) => f.userId === r.userId)?.name ?? "-",
-    formatDate(r.reportedAt), r.description, r.status,
-  ]);
-  const diseaseRowsEn: (string | number)[][] = mockDiseaseReports.map((r) => [
-    farmers.find((f) => f.userId === r.userId)?.name ?? "-",
-    formatDate(r.reportedAt), r.description, r.status,
-  ]);
 
-  // 5. Vaccination
-  const overdueVax = mockVaccinations.filter((v) => v.type !== "deworming" && new Date(v.nextDueDate) < today);
-  const overdueDew = mockVaccinations.filter((v) => v.type === "deworming" && new Date(v.nextDueDate) < today);
-  const vacHeadersTamil = ["விவசாயி", "வகை", "கடைசி தேதி", "அடுத்த தேதி", "நிலை"];
-  const vacHeadersEn = ["Farmer", "Type", "Date Given", "Next Due", "Status"];
-  const vacRowsTamil: (string | number)[][] = mockVaccinations.map((v) => [
-    farmers.find((f) => f.userId === v.userId)?.name ?? "-",
+  const overdueVax = vaccinations.filter((v) => v.type !== "deworming" && new Date(v.nextDueDate) < today);
+  const overdueDew = vaccinations.filter((v) => v.type === "deworming" && new Date(v.nextDueDate) < today);
+  const vacRows: (string | number)[][] = vaccinations.map((v) => [
+    v.userId?.name || "-",
     v.type === "deworming" ? "குடற்புழு நீக்கம்" : v.type === "smallpox" ? "அம்மை தடுப்பூசி" : "வெள்ளை கழிச்சல்",
     formatDate(v.dateGiven), formatDate(v.nextDueDate),
     new Date(v.nextDueDate) < today ? "காலாவதி" : "சரி",
   ]);
-  const vacRowsEn: (string | number)[][] = mockVaccinations.map((v) => [
-    farmers.find((f) => f.userId === v.userId)?.name ?? "-",
-    v.type === "deworming" ? "Deworming" : v.type === "smallpox" ? "Smallpox" : "White Diarrhea",
-    formatDate(v.dateGiven), formatDate(v.nextDueDate),
-    new Date(v.nextDueDate) < today ? "Overdue" : "OK",
-  ]);
+  const vacHeadersTamil = ["விவசாயி", "வகை", "கடைசி தேதி", "அடுத்த தேதி", "நிலை"];
 
-  // 6. Weekly History
-  const weeklyHeadersTamil = ["வாரம்", "குஞ்சு", "வளர்ச்சி", "முட்டை", "கறி", "மொத்தம்"];
-  const weeklyHeadersEn = ["Week", "Chicks", "Growers", "Layers", "Broilers", "Total"];
-  const weeklyRows: (string | number)[][] = mockBirdUpdates.map((u) => [
-    formatDate(u.weekDate), u.chicks, u.growers, u.layers, u.broilers,
+  const weeklyRows: (string | number)[][] = birdUpdates.map((u) => [
+    u.userId?.name || "-", formatDate(u.weekDate), u.chicks, u.growers, u.layers, u.broilers,
     u.chicks + u.growers + u.layers + u.broilers,
   ]);
+  const weeklyHeadersTamil = ["விவசாயி", "வாரம்", "குஞ்சு", "வளர்ச்சி", "முட்டை", "கறி", "மொத்தம்"];
 
-  // 7. Loans
-  const loans = mockServiceDemands.filter((d) => d.type === "Loan");
+  const loans = demands.filter((d) => d.type === "Loan");
   const totalRequested = loans.reduce((s, d) => s + (d.amount || 0), 0);
   const totalApproved  = loans.filter((d) => d.status === "Completed").reduce((s, d) => s + (d.amount || 0), 0);
   const totalRejected  = loans.filter((d) => d.status === "Rejected").reduce((s, d) => s + (d.amount || 0), 0);
   const totalPending   = loans.filter((d) => d.status === "Pending").reduce((s, d) => s + (d.amount || 0), 0);
+  const loanRows: (string | number)[][] = loans.map((d) => [d.userId?.name || d.farmerName || "-", d.amount || 0, d.notes || "-", d.status, formatDate(d.createdAt)]);
   const loanHeadersTamil = ["விவசாயி", "தொகை", "நோக்கம்", "நிலை", "தேதி"];
-  const loanHeadersEn = ["Farmer", "Amount (Rs)", "Purpose", "Status", "Date"];
-  const loanRowsTamil: (string | number)[][] = loans.map((d) => [
-    d.userId?.name || d.farmerName, d.amount || 0, d.notes || "-", d.status, formatDate(d.createdAt),
-  ]);
-  const loanRowsEn: (string | number)[][] = loans.map((d) => [
-    d.userId?.name || d.farmerName, d.amount || 0, d.notes || "-", d.status, formatDate(d.createdAt),
-  ]);
+
+  const soldStocks = saleStocks.filter((s) => s.status === "sold");
+  const soldRows: (string | number)[][] = soldStocks.map((s) => [s.farmerName, s.hamlet, s.broilers, s.chicks, s.eggs, formatDate(s.createdAt), s.soldAt ? formatDate(s.soldAt) : "-"]);
+  const soldHeadersTamil = ["விவசாயி", "ஊர்", "கறிக்கோழி", "குஞ்சு", "முட்டை", "பதிவு தேதி", "விற்பனை தேதி"];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <h2 className="text-lg font-bold text-center text-foreground">அறிக்கைகள் (Reports)</h2>
 
-      {/* 1. Bird Stock */}
-      <Card className="p-4 bg-card">
-        <h3 className="text-base font-bold mb-3 text-foreground">🐔 கோழி இருப்பு நிலை</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {stockRowsTamil.slice(0, 4).map(([label, count]) => (
-            <div key={label} className="bg-muted/40 rounded-lg p-3 text-center">
-              <p className="text-xl font-bold text-foreground">{count}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-2 bg-primary/10 rounded-lg p-3 text-center">
-          <p className="text-2xl font-bold text-primary">{stock.total}</p>
-          <p className="text-xs text-muted-foreground">மொத்தம் (Total)</p>
-        </div>
-        <ExportButtons
-          onExcel={() => downloadExcel(["வகை", "எண்ணிக்கை"], stockRowsTamil, "bird_stock")}
-          onPdf={() => downloadPDF("Bird Stock Summary", ["Type", "Count"], stockRowsEn, "bird_stock")}
-        />
-      </Card>
-
-      {/* 2. Farmer Data */}
-      <Card className="p-4 bg-card">
-        <h3 className="text-base font-bold mb-3 text-foreground">👩‍🌾 விவசாயி தரவு ({farmers.length} பேர்)</h3>
+      <Section title="விவசாயி தரவு" count={farmers.length} defaultOpen={false}
+        onExcel={() => downloadExcel(farmerHeadersTamil, farmerRows, "farmer_data")}
+        onPdf={() => downloadPDF("விவசாயி தரவு", farmerHeadersTamil, farmerRows, "farmer_data")}>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border">
-                {farmerHeadersTamil.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {farmerRows.map((row, i) => (
-                <tr key={i} className="border-b border-border/40">
-                  {row.map((cell, j) => <td key={j} className="py-2 px-1 text-foreground">{cell}</td>)}
-                </tr>
-              ))}
-            </tbody>
+            <thead><tr className="border-b border-border">{farmerHeadersTamil.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}</tr></thead>
+            <tbody>{farmerRows.map((row, i) => (<tr key={i} className="border-b border-border/40">{row.map((cell, j) => <td key={j} className="py-2 px-1 text-foreground">{cell}</td>)}</tr>))}</tbody>
           </table>
         </div>
-        <ExportButtons
-          onExcel={() => downloadExcel(farmerHeadersTamil, farmerRows, "farmer_data")}
-          onPdf={() => downloadPDF("Farmer Data", farmerHeadersEn, farmerRows, "farmer_data")}
-        />
-      </Card>
+      </Section>
 
-      {/* 3. Service Demands */}
-      <Card className="p-4 bg-card">
-        <h3 className="text-base font-bold mb-3 text-foreground">📋 சேவை கோரிக்கை அறிக்கை</h3>
+      <Section title="சேவை கோரிக்கை அறிக்கை" defaultOpen={true}
+        onExcel={() => downloadExcel(demandHeadersTamil, demandRows, "service_demands")}
+        onPdf={() => downloadPDF("சேவை கோரிக்கை அறிக்கை", demandHeadersTamil, demandRows, "service_demands")}>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border">
-                {demandHeadersTamil.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {demandRows.map((row, i) => (
-                <tr key={i} className="border-b border-border/40">
-                  <td className="py-2 px-1 font-medium text-foreground">{row[0]}</td>
-                  <td className="py-2 px-1 text-center">{row[1]}</td>
-                  <td className="py-2 px-1 text-center text-warning font-bold">{row[2]}</td>
-                  <td className="py-2 px-1 text-center text-success font-bold">{row[3]}</td>
-                  <td className="py-2 px-1 text-center text-danger font-bold">{row[4]}</td>
-                </tr>
-              ))}
-            </tbody>
+            <thead><tr className="border-b border-border">{demandHeadersTamil.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}</tr></thead>
+            <tbody>{demandRows.map((row, i) => (<tr key={i} className="border-b border-border/40"><td className="py-2 px-1 font-medium text-foreground">{row[0]}</td><td className="py-2 px-1 text-center">{row[1]}</td><td className="py-2 px-1 text-center text-warning font-bold">{row[2]}</td><td className="py-2 px-1 text-center text-success font-bold">{row[3]}</td><td className="py-2 px-1 text-center text-danger font-bold">{row[4]}</td></tr>))}</tbody>
           </table>
         </div>
-        <ExportButtons
-          onExcel={() => downloadExcel(demandHeadersTamil, demandRows, "service_demands")}
-          onPdf={() => downloadPDF("Service Demand Report", demandHeadersEn, demandRows, "service_demands")}
-        />
-      </Card>
+      </Section>
 
-      {/* 4. Disease Reports */}
-      <Card className="p-4 bg-card">
-        <h3 className="text-base font-bold mb-3 text-foreground">🦠 நோய் அறிக்கை பதிவு</h3>
-        <div className="flex flex-col gap-2" key={diseaseRefresh}>
-          {mockDiseaseReports.map((r, i) => (
+      <Section title="நோய் அறிக்கை பதிவு" count={pendingDisease.length} defaultOpen={true}
+        onExcel={() => downloadExcel(diseaseHeadersTamil, diseaseRows, "disease_reports")}
+        onPdf={() => downloadPDF("நோய் அறிக்கை பதிவு", diseaseHeadersTamil, diseaseRows, "disease_reports")}>
+        <div className="flex flex-col gap-2">
+          {diseaseReports.slice(0, 20).map((r, i) => (
             <div key={i} className="border border-border rounded-lg p-3">
               <div className="flex items-center justify-between mb-1">
-                <p className="text-xs text-muted-foreground">{formatDate(r.reportedAt)}</p>
+                <p className="text-xs text-muted-foreground">{r.userId?.name || "-"} • {formatDate(r.reportedAt)}</p>
                 <Badge className={r.status === "Reviewed" ? "bg-success text-success-foreground" : "bg-warning text-warning-foreground"}>
-                  {r.status === "Reviewed" ? "✅ பரிசீலிக்கப்பட்டது" : "🟡 நிலுவையில்"}
+                  {r.status === "Reviewed" ? "பரிசீலிக்கப்பட்டது" : "நிலுவையில்"}
                 </Badge>
               </div>
-              <p className="text-sm text-foreground mb-2">{r.description}</p>
-              {r.status === "Pending" && (
-                <Button size="sm" className="w-full bg-success text-success-foreground text-xs"
-                  onClick={async () => {
-                    await api.reviewDiseaseReport(r._id);
-                    toast.success("பரிசீலிக்கப்பட்டது ✅");
-                    setDiseaseRefresh((k) => k + 1);
-                  }}
-                >
-                  ✅ பரிசீலிக்கப்பட்டதாக குறி
-                </Button>
-              )}
+              <p className="text-sm text-foreground">{r.description}</p>
             </div>
           ))}
         </div>
-        <ExportButtons
-          onExcel={() => downloadExcel(diseaseHeadersTamil, diseaseRowsTamil, "disease_reports")}
-          onPdf={() => downloadPDF("Disease Report Log", diseaseHeadersEn, diseaseRowsEn, "disease_reports")}
-        />
-      </Card>
+      </Section>
 
-      {/* 5. Vaccination Status */}
-      <Card className="p-4 bg-card">
-        <h3 className="text-base font-bold mb-3 text-foreground">💉 தடுப்பூசி நிலை</h3>
+      <Section title="தடுப்பூசி நிலை" count={overdueVax.length + overdueDew.length} defaultOpen={false}
+        onExcel={() => downloadExcel(vacHeadersTamil, vacRows, "vaccination_status")}
+        onPdf={() => downloadPDF("தடுப்பூசி நிலை", vacHeadersTamil, vacRows, "vaccination_status")}>
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="bg-danger/10 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-danger">{overdueVax.length}</p>
-            <p className="text-xs text-muted-foreground">தடுப்பூசி காலாவதி</p>
-          </div>
-          <div className="bg-warning/10 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-warning">{overdueDew.length}</p>
-            <p className="text-xs text-muted-foreground">குடற்புழு காலாவதி</p>
-          </div>
+          <div className="bg-danger/10 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-danger">{overdueVax.length}</p><p className="text-xs text-muted-foreground">தடுப்பூசி காலாவதி</p></div>
+          <div className="bg-warning/10 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-warning">{overdueDew.length}</p><p className="text-xs text-muted-foreground">குடற்புழு காலாவதி</p></div>
         </div>
+      </Section>
+
+      <Section title="வாராந்திர புதுப்பிப்பு வரலாறு" defaultOpen={false}
+        onExcel={() => downloadExcel(weeklyHeadersTamil, weeklyRows, "weekly_history")}
+        onPdf={() => downloadPDF("வாராந்திர புதுப்பிப்பு வரலாறு", weeklyHeadersTamil, weeklyRows, "weekly_history")}>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border">
-                {vacHeadersTamil.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {vacRowsTamil.map((row, i) => (
-                <tr key={i} className="border-b border-border/40">
-                  {row.map((cell, j) => <td key={j} className="py-2 px-1 text-foreground">{cell}</td>)}
-                </tr>
-              ))}
-            </tbody>
+            <thead><tr className="border-b border-border">{weeklyHeadersTamil.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}</tr></thead>
+            <tbody>{weeklyRows.map((row, i) => (<tr key={i} className="border-b border-border/40">{row.map((cell, j) => <td key={j} className={`py-2 px-1 ${j === 6 ? "font-bold text-primary" : "text-foreground"}`}>{cell}</td>)}</tr>))}</tbody>
           </table>
         </div>
-        <ExportButtons
-          onExcel={() => downloadExcel(vacHeadersTamil, vacRowsTamil, "vaccination_status")}
-          onPdf={() => downloadPDF("Vaccination Status", vacHeadersEn, vacRowsEn, "vaccination_status")}
-        />
-      </Card>
+      </Section>
 
-      {/* 6. Weekly History */}
-      <Card className="p-4 bg-card">
-        <h3 className="text-base font-bold mb-3 text-foreground">📅 வாராந்திர புதுப்பிப்பு வரலாறு</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border">
-                {weeklyHeadersTamil.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {weeklyRows.map((row, i) => (
-                <tr key={i} className="border-b border-border/40">
-                  {row.map((cell, j) => (
-                    <td key={j} className={`py-2 px-1 ${j === 5 ? "font-bold text-primary" : "text-foreground"}`}>{cell}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <ExportButtons
-          onExcel={() => downloadExcel(weeklyHeadersTamil, weeklyRows, "weekly_history")}
-          onPdf={() => downloadPDF("Weekly Update History", weeklyHeadersEn, weeklyRows, "weekly_history")}
-        />
-      </Card>
-
-      {/* 7. Loan Summary */}
-      <Card className="p-4 bg-card">
-        <h3 className="text-base font-bold mb-3 text-foreground">💰 கடன் சுருக்கம்</h3>
+      <Section title="கடன் சுருக்கம்" count={loans.length} defaultOpen={false}
+        onExcel={() => downloadExcel(loanHeadersTamil, loanRows, "loan_summary")}
+        onPdf={() => downloadPDF("கடன் சுருக்கம்", loanHeadersTamil, loanRows, "loan_summary")}>
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="bg-muted/40 rounded-lg p-3 text-center">
-            <p className="text-lg font-bold text-foreground">Rs.{totalRequested.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">மொத்த கோரிக்கை</p>
-          </div>
-          <div className="bg-warning/10 rounded-lg p-3 text-center">
-            <p className="text-lg font-bold text-warning">Rs.{totalPending.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">நிலுவையில்</p>
-          </div>
-          <div className="bg-success/10 rounded-lg p-3 text-center">
-            <p className="text-lg font-bold text-success">Rs.{totalApproved.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">அனுமதிக்கப்பட்டது</p>
-          </div>
-          <div className="bg-danger/10 rounded-lg p-3 text-center">
-            <p className="text-lg font-bold text-danger">Rs.{totalRejected.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">நிராகரிக்கப்பட்டது</p>
-          </div>
+          <div className="bg-muted/40 rounded-lg p-3 text-center"><p className="text-lg font-bold text-foreground">₹{totalRequested.toLocaleString()}</p><p className="text-xs text-muted-foreground">மொத்த கோரிக்கை</p></div>
+          <div className="bg-warning/10 rounded-lg p-3 text-center"><p className="text-lg font-bold text-warning">₹{totalPending.toLocaleString()}</p><p className="text-xs text-muted-foreground">நிலுவையில்</p></div>
+          <div className="bg-success/10 rounded-lg p-3 text-center"><p className="text-lg font-bold text-success">₹{totalApproved.toLocaleString()}</p><p className="text-xs text-muted-foreground">அனுமதிக்கப்பட்டது</p></div>
+          <div className="bg-danger/10 rounded-lg p-3 text-center"><p className="text-lg font-bold text-danger">₹{totalRejected.toLocaleString()}</p><p className="text-xs text-muted-foreground">நிராகரிக்கப்பட்டது</p></div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border">
-                {loanHeadersTamil.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {loanRowsTamil.map((row, i) => (
-                <tr key={i} className="border-b border-border/40">
-                  {row.map((cell, j) => <td key={j} className="py-2 px-1 text-foreground">{cell}</td>)}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <ExportButtons
-          onExcel={() => downloadExcel(loanHeadersTamil, loanRowsTamil, "loan_summary")}
-          onPdf={() => downloadPDF("Loan Summary", loanHeadersEn, loanRowsEn, "loan_summary")}
-        />
-      </Card>
+      </Section>
+
+      <Section title="விற்பனை இருப்பு வரலாறு" count={soldStocks.length} defaultOpen={false}
+        onExcel={() => downloadExcel(soldHeadersTamil, soldRows, "sold_stocks")}
+        onPdf={() => downloadPDF("விற்பனை இருப்பு வரலாறு", soldHeadersTamil, soldRows, "sold_stocks")}>
+        {soldStocks.length === 0 ? <p className="text-sm text-muted-foreground">விற்பனை வரலாறு இல்லை</p> : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead><tr className="border-b border-border">{soldHeadersTamil.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}</tr></thead>
+              <tbody>{soldRows.map((row, i) => (<tr key={i} className="border-b border-border/40">{row.map((cell, j) => <td key={j} className="py-2 px-1 text-foreground">{cell}</td>)}</tr>))}</tbody>
+            </table>
+          </div>
+        )}
+      </Section>
     </div>
   );
 };

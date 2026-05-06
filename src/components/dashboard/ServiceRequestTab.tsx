@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/mockData";
-import { Loader2, Wheat, Wrench, Syringe } from "lucide-react";
+import { Loader2, Wheat, Wrench, Syringe, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 const REQUEST_TYPES = [
@@ -27,6 +27,7 @@ const ServiceRequestTab = () => {
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<any[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [open, setOpen] = useState(true);
 
   useEffect(() => {
     api.getServiceDemands()
@@ -125,26 +126,34 @@ const ServiceRequestTab = () => {
       {/* Past requests */}
       {requests.length > 0 && (
         <div>
-          <p className="text-base font-bold text-foreground mb-3">எனது கோரிக்கைகள்</p>
-          <div className="flex flex-col gap-3">
-            {requests.map((r) => {
-              const config = statusConfig[r.status] ?? statusConfig.Pending;
-              const rt = REQUEST_TYPES.find((x) => x.type === r.type);
-              return (
-                <Card key={r._id} className="p-4 border-2">
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      {rt && <rt.icon size={16} className="text-muted-foreground" />}
-                      <p className="text-sm font-bold text-foreground">{rt ? rt.label : r.type}</p>
+          <button
+            onClick={() => setOpen(!open)}
+            className="flex items-center justify-between w-full mb-3"
+          >
+            <p className="text-base font-bold text-foreground">எனது கோரிக்கைகள் ({requests.length})</p>
+            {open ? <ChevronUp size={18} className="text-muted-foreground" /> : <ChevronDown size={18} className="text-muted-foreground" />}
+          </button>
+          {open && (
+            <div className="flex flex-col gap-3">
+              {requests.map((r) => {
+                const config = statusConfig[r.status] ?? statusConfig.Pending;
+                const rt = REQUEST_TYPES.find((x) => x.type === r.type);
+                return (
+                  <Card key={r._id} className="p-4 border-2">
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        {rt && <rt.icon size={16} className="text-muted-foreground" />}
+                        <p className="text-sm font-bold text-foreground">{rt ? rt.label : r.type}</p>
+                      </div>
+                      <Badge className={config.className}>{config.label}</Badge>
                     </div>
-                    <Badge className={config.className}>{config.label}</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{formatDate(r.createdAt)}</p>
-                  {r.notes && <p className="text-xs text-foreground mt-1 bg-muted/40 px-2 py-1 rounded">{r.notes}</p>}
-                </Card>
-              );
-            })}
-          </div>
+                    <p className="text-xs text-muted-foreground">{formatDate(r.createdAt)}</p>
+                    {r.notes && <p className="text-xs text-foreground mt-1 bg-muted/40 px-2 py-1 rounded">{r.notes}</p>}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
       {requests.length === 0 && (

@@ -3,18 +3,19 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { verifyOtpAndLogin, User } from "@/lib/auth";
+import { User } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface OtpScreenProps {
   phone: string;
-  onVerified: (user: User) => void;
+  devOtp?: string | null;
+  onVerified: (user: User, token: string) => void;
   onBack: () => void;
 }
 
-const OtpScreen = ({ phone, onVerified, onBack }: OtpScreenProps) => {
+const OtpScreen = ({ phone, devOtp, onVerified, onBack }: OtpScreenProps) => {
   const { t } = useLanguage();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -44,17 +45,22 @@ const OtpScreen = ({ phone, onVerified, onBack }: OtpScreenProps) => {
     const code = otp.join("");
     if (code.length !== 6) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    const result = await verifyOtpAndLogin(code);
-    setLoading(false);
-    if (result.success && result.user) {
+    try {
+      const result = await api.verifyOtp(phone, code);
       toast.success("✅ " + t("done"));
-      onVerified(result.user);
-    } else {
-      toast.error("தவறான OTP. மீண்டும் முயற்சிக்கவும்.");
-      setOtp(["", "", "", "", "", ""]);
-      refs.current[0]?.focus();
+      onVerified(result.user, result.token);
+    } catch (err: any) {
+      setLoading(false);
+      if (err?.message === "pending") {
+        toast("⏳ உங்கள் பதிவு CRP அனுமதிக்காக காத்திருக்கிறது");
+        onBack();
+      } else {
+        toast.error(err?.message || "தவறான OTP. மீண்டும் முயற்சிக்கவும்.");
+        setOtp(["", "", "", "", "", ""]);
+        refs.current[0]?.focus();
+      }
     }
+    setLoading(false);
   };
 
   const handleResend = async () => {
@@ -79,6 +85,11 @@ const OtpScreen = ({ phone, onVerified, onBack }: OtpScreenProps) => {
         <div>
           <h1 className="text-lg font-bold text-foreground">{t("otpVerification")}</h1>
           <p className="text-sm text-muted-foreground mt-1">{t("otpSentTo")} {phone}</p>
+          {devOtp && (
+            <p className="text-xs mt-2 bg-muted px-3 py-1.5 rounded font-mono text-foreground">
+              OTP: <span className="font-bold text-primary">{devOtp}</span>
+            </p>
+          )}
         </div>
 
         <Label className="text-base font-medium">{t("enterOtp")} :</Label>
@@ -109,7 +120,7 @@ const OtpScreen = ({ phone, onVerified, onBack }: OtpScreenProps) => {
 
         <div className="text-center">
           {resendTimer > 0 ? (
-            <p className="text-xs italic text-muted-foreground">Loading… {resendTimer}s</p>
+            <p className="text-xs italic text-muted-foreground">மீண்டும் அனுப்ப... {resendTimer}s</p>
           ) : (
             <button onClick={handleResend} className="text-primary font-medium text-sm underline">
               {t("resendOtp")}

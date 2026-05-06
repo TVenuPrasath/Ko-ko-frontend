@@ -4,32 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { mockLogin, loginWithPhone } from "@/lib/auth";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 interface ChooseActionScreenProps {
   onRegister: () => void;
-  onLogin: (user: any) => void;
+  onLogin: (phone: string) => void;
 }
 
 const ChooseActionScreen = ({ onRegister, onLogin }: ChooseActionScreenProps) => {
   const { t } = useLanguage();
   const [phone, setPhone] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = () => {
     if (phone.length !== 10) return;
-    setLoading(true);
-    mockLogin(phone);
-    const result = await loginWithPhone();
-    setLoading(false);
-    if (result.success && result.user) {
-      toast.success("வணக்கம்! ✅");
-      onLogin(result.user);
-    } else {
-      toast.error("உள் நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.");
-    }
+    onLogin(phone);
   };
 
   return (
@@ -72,10 +59,10 @@ const ChooseActionScreen = ({ onRegister, onLogin }: ChooseActionScreenProps) =>
 
         <Button
           onClick={handleLogin}
-          disabled={phone.length !== 10 || loading}
+          disabled={phone.length !== 10}
           className="tap-target w-full text-lg font-semibold bg-primary text-primary-foreground"
         >
-          {loading ? <Loader2 className="animate-spin" size={20} /> : t("login")}
+          {t("login")}
         </Button>
       </Card>
     </div>

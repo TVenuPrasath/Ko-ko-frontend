@@ -3,9 +3,9 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { User } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { ClipboardList, Bug, Bird, AlertTriangle, History, IndianRupee, Banknote } from "lucide-react";
+import { ClipboardList, Bug, Bird, AlertTriangle, History, IndianRupee } from "lucide-react";
 
-type NavTab = "weekly" | "disease" | "notifications" | "history" | "prices" | "loan" | "requests";
+type NavTab = "weekly" | "disease" | "notifications" | "history" | "prices" | "loan";
 
 interface HomeTabProps {
   user: User;
@@ -23,12 +23,11 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
   }, []);
 
   const cards: { key: NavTab; titleTa: string; titleEn: string; icon: typeof Bird; color: string }[] = [
-    { key: "weekly", titleTa: t("birdsUpdate"), titleEn: "(Birds update)", icon: Bird, color: "text-primary" },
-    { key: "requests", titleTa: t("servicesNeededTitle"), titleEn: "(Service update)", icon: ClipboardList, color: "text-warning" },
-    { key: "disease", titleTa: t("reportDisease"), titleEn: "(Report diseases)", icon: Bug, color: "text-danger" },
-    { key: "history", titleTa: "தடுப்பூசி வரலாறு", titleEn: "(Vaccination History)", icon: History, color: "text-success" },
-    { key: "prices", titleTa: "சந்தை விலை", titleEn: "(Market Prices)", icon: IndianRupee, color: "text-primary" },
-    { key: "loan", titleTa: "கோழி வளர்ப்புக்கான கடன்", titleEn: "(Poultry Loan)", icon: Banknote, color: "text-success" },
+    { key: "weekly",  titleTa: t("birdsUpdate"),        titleEn: "(Birds update)",        icon: Bird,        color: "text-primary" },
+    { key: "loan",    titleTa: t("servicesNeededTitle"), titleEn: "(Services & Loan)",     icon: ClipboardList, color: "text-primary" },
+    { key: "disease", titleTa: t("reportDisease"),       titleEn: "(Report diseases)",     icon: Bug,         color: "text-danger" },
+    { key: "history", titleTa: "தடுப்பூசி வரலாறு",       titleEn: "(Vaccination History)", icon: History,     color: "text-success" },
+    { key: "prices",  titleTa: "சந்தை விலை",             titleEn: "(Market Prices)",       icon: IndianRupee, color: "text-primary" },
   ];
 
   const tickerText = weekDone

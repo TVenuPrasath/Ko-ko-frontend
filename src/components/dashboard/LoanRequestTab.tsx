@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/mockData";
-import { Loader2, IndianRupee, ClipboardList } from "lucide-react";
+import { Loader2, IndianRupee, ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 const LOAN_PURPOSES = [
@@ -23,6 +23,49 @@ const statusConfig: Record<string, { label: string; className: string; msg: stri
   Pending:   { label: "🟡 நிலுவையில்",         className: "bg-warning text-warning-foreground",  msg: "உங்கள் கோரிக்கை CRP-இடம் உள்ளது. விரைவில் பதில் வரும்." },
   Completed: { label: "✅ அனுமதிக்கப்பட்டது",  className: "bg-success text-success-foreground",  msg: "உங்கள் கடன் கோரிக்கை CRP-ஆல் அனுமதிக்கப்பட்டது!" },
   Rejected:  { label: "❌ நிராகரிக்கப்பட்டது", className: "bg-destructive text-destructive-foreground", msg: "உங்கள் கடன் கோரிக்கை நிராகரிக்கப்பட்டது. CRP-ஐ தொடர்பு கொள்ளவும்." },
+};
+
+const LoanHistorySection = ({ loanRequests }: { loanRequests: any[] }) => {
+  const [open, setOpen] = useState(true);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center justify-between w-full mb-3"
+      >
+        <div className="flex items-center gap-2">
+          <ClipboardList size={18} className="text-primary" />
+          <p className="text-base font-bold text-foreground">எனது கடன் கோரிக்கைகள் ({loanRequests.length})</p>
+        </div>
+        {open ? <ChevronUp size={18} className="text-muted-foreground" /> : <ChevronDown size={18} className="text-muted-foreground" />}
+      </button>
+      {open && (
+        <div className="flex flex-col gap-3">
+          {loanRequests.map((r) => {
+            const config = statusConfig[r.status] ?? statusConfig.Pending;
+            return (
+              <Card key={r._id} className="p-4 border-2">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="text-xl font-bold text-foreground">₹{r.amount?.toLocaleString("ta-IN") ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{formatDate(r.createdAt)}</p>
+                  </div>
+                  <Badge className={config.className}>{config.label}</Badge>
+                </div>
+                {r.notes && (
+                  <p className="text-sm text-foreground bg-muted/40 px-3 py-2 rounded-md">{r.notes}</p>
+                )}
+                <p className={`text-xs mt-2 font-medium ${
+                  r.status === "Completed" ? "text-success" :
+                  r.status === "Rejected"  ? "text-destructive" : "text-warning"
+                }`}>{config.msg}</p>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const LoanRequestTab = () => {
@@ -167,35 +210,7 @@ const LoanRequestTab = () => {
 
       {/* Past loan requests */}
       {loanRequests.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <ClipboardList size={18} className="text-primary" />
-            <p className="text-base font-bold text-foreground">எனது கடன் கோரிக்கைகள்</p>
-          </div>
-          <div className="flex flex-col gap-3">
-            {loanRequests.map((r) => {
-              const config = statusConfig[r.status] ?? statusConfig.Pending;
-              return (
-                <Card key={r._id} className="p-4 border-2">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="text-xl font-bold text-foreground">₹{r.amount?.toLocaleString("ta-IN") ?? "—"}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{formatDate(r.createdAt)}</p>
-                    </div>
-                    <Badge className={config.className}>{config.label}</Badge>
-                  </div>
-                  {r.notes && (
-                    <p className="text-sm text-foreground bg-muted/40 px-3 py-2 rounded-md">{r.notes}</p>
-                  )}
-                  <p className={`text-xs mt-2 font-medium ${
-                    r.status === "Completed" ? "text-success" :
-                    r.status === "Rejected"  ? "text-destructive" : "text-warning"
-                  }`}>{config.msg}</p>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
+        <LoanHistorySection loanRequests={loanRequests} />
       )}
 
       {loanRequests.length === 0 && (

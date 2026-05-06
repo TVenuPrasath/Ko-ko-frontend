@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { HAMLETS } from "@/lib/auth";
+import { User } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 
-const CrpAlertsTab = () => {
+const CrpAlertsTab = ({ user }: { user: User }) => {
   const { t } = useLanguage();
+  const officer = { id: user.userId, name: user.name };
 
   const [alertHamlet, setAlertHamlet] = useState("");
   const [alertMsg, setAlertMsg] = useState("");
@@ -25,10 +27,13 @@ const CrpAlertsTab = () => {
   const [priceDate, setPriceDate] = useState(new Date().toISOString().split("T")[0]);
   const [priceLoading, setPriceLoading] = useState(false);
 
+  const whatsapp = (msg: string) =>
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+
   const handleSendAlert = async () => {
     if (!alertMsg.trim()) return;
     setAlertLoading(true);
-    await api.createNotification({ type: "disease", message: alertMsg, hamlet: alertHamlet || undefined });
+    await api.createNotification({ type: "disease", message: alertMsg, hamlet: alertHamlet || undefined }, officer);
     setAlertLoading(false);
     toast.success(t("alertSent") + " ✅ (செயலி அறிவிப்பாக அனுப்பப்பட்டது)");
     setAlertMsg("");
@@ -37,7 +42,7 @@ const CrpAlertsTab = () => {
   const handleSendTip = async () => {
     if (!tipMsg.trim()) return;
     setTipLoading(true);
-    await api.createNotification({ type: "tip", message: tipMsg });
+    await api.createNotification({ type: "tip", message: tipMsg }, officer);
     setTipLoading(false);
     toast.success(t("tipSent") + " ✅ (செயலி அறிவிப்பாக அனுப்பப்பட்டது)");
     setTipMsg("");
@@ -50,11 +55,11 @@ const CrpAlertsTab = () => {
       broiler: Number(broilerPrice) || 0,
       chick: Number(chickPrice) || 0,
       egg: Number(eggPrice) || 0,
-    });
+    }, officer);
     await api.createNotification({
       type: "market",
       message: `சந்தை விலை புதுப்பிப்பு: கறிக்கோழி ₹${broilerPrice}/kg | குஞ்சு ₹${chickPrice}/குஞ்சு | முட்டை ₹${eggPrice}/முட்டை (தேதி: ${priceDate})`,
-    });
+    }, officer);
     setPriceLoading(false);
     toast.success(t("priceSent") + " ✅ (செயலி அறிவிப்பாக அனுப்பப்பட்டது)");
     setBroilerPrice(""); setChickPrice(""); setEggPrice("");
@@ -73,6 +78,9 @@ const CrpAlertsTab = () => {
           <Button onClick={handleSendAlert} disabled={!alertMsg.trim() || alertLoading} className="tap-target w-full bg-danger text-danger-foreground">
             {alertLoading ? <Loader2 className="animate-spin" size={18} /> : t("sendAlert")}
           </Button>
+          <Button onClick={() => whatsapp(`🔴 நோய் எச்சரிக்கை: ${alertMsg}`)} disabled={!alertMsg.trim()} variant="outline" className="tap-target w-full gap-2 text-success border-success">
+            <MessageCircle size={16} /> WhatsApp அனுப்பு
+          </Button>
         </div>
       </Card>
 
@@ -81,6 +89,9 @@ const CrpAlertsTab = () => {
         <Textarea value={tipMsg} onChange={(e) => setTipMsg(e.target.value)} placeholder={t("message")} rows={3} className="text-base mb-3" />
         <Button onClick={handleSendTip} disabled={!tipMsg.trim() || tipLoading} className="tap-target w-full bg-primary text-primary-foreground">
           {tipLoading ? <Loader2 className="animate-spin" size={18} /> : t("sendFarmingTip")}
+        </Button>
+        <Button onClick={() => whatsapp(`💡 விவசாய குறிப்பு: ${tipMsg}`)} disabled={!tipMsg.trim()} variant="outline" className="tap-target w-full gap-2 text-success border-success mt-2">
+          <MessageCircle size={16} /> WhatsApp அனுப்பு
         </Button>
       </Card>
 
@@ -102,6 +113,13 @@ const CrpAlertsTab = () => {
           <Input type="date" value={priceDate} onChange={(e) => setPriceDate(e.target.value)} />
           <Button onClick={handleSendPrice} disabled={(!broilerPrice && !chickPrice && !eggPrice) || priceLoading} className="tap-target bg-primary text-primary-foreground">
             {priceLoading ? <Loader2 className="animate-spin" size={18} /> : t("sendMarketPrice")}
+          </Button>
+          <Button
+            onClick={() => whatsapp(`📊 சந்தை விலை: கறிக்கோழி ₹${broilerPrice}/kg | குஞ்சு ₹${chickPrice}/குஞ்சு | முட்டை ₹${eggPrice}/முட்டை (${priceDate})`)}
+            disabled={!broilerPrice && !chickPrice && !eggPrice}
+            variant="outline" className="tap-target gap-2 text-success border-success"
+          >
+            <MessageCircle size={16} /> WhatsApp அனுப்பு
           </Button>
         </div>
       </Card>

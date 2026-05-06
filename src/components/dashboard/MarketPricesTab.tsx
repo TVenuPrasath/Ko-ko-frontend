@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { formatTamilDate } from "@/lib/marketAndHistory";
 import { Drumstick, Egg, Bird } from "lucide-react";
+
+function formatTamilDate(dateStr: string): string {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
 
 const MarketPricesTab = () => {
   const [price, setPrice] = useState<any>(null);

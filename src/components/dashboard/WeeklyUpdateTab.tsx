@@ -71,7 +71,7 @@ const WeeklyUpdateTab = () => {
   const handleSubmitSale = async () => {
     setSaleLoading(true);
     try {
-      await api.submitBirdUpdate({ chicks: 0, growers: 0, layers: 0, broilers: saleBroiler, saleChicks, saleEggs });
+      await api.submitSaleStock({ broilers: saleBroiler, chicks: saleChicks, eggs: saleEggs });
       toast.success("விற்பனை தகவல் சேமிக்கப்பட்டது ✅");
       setSaleBroiler(0); setSaleChicks(0); setSaleEggs(0);
     } catch (err: any) {

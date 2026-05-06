@@ -1,17 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { HAMLETS } from "@/lib/auth";
+import { HAMLET_STREETS } from "@/lib/auth";
+import { api } from "@/lib/api";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
-const SHG_NAMES = [
-  "Thendral SHG", "Suriya SHG", "Kaveri SHG", "Mullai SHG", "Poonkodi SHG",
-  "Rani SHG", "Vaigai SHG", "Malar SHG", "Kurinji SHG", "Thamarai SHG",
-];
+const HAMLETS_LIST = Object.keys(HAMLET_STREETS);
 
 interface RegistrationScreenProps {
   onNext: (data: {
@@ -33,9 +31,16 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
   const [street, setStreet] = useState("");
   const [hamlet, setHamlet] = useState("");
   const [shgName, setShgName] = useState("");
+  const [shgNames, setShgNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const isValid = name.trim() && phone.length === 10 && hamlet && shgName;
+  useEffect(() => {
+    api.getShgGroups().then((data: any[]) => setShgNames(data.map((g) => g.name))).catch(() => {});
+  }, []);
+
+  const availableStreets = hamlet ? HAMLET_STREETS[hamlet] || [] : [];
+
+  const isValid = name.trim() && phone.length === 10 && hamlet && street && shgName;
 
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -43,6 +48,11 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
     await new Promise((r) => setTimeout(r, 400));
     setLoading(false);
     onNext({ name, phone, hamlet, houseNo, street, shgName });
+  };
+
+  const handleHamletChange = (value: string) => {
+    setHamlet(value);
+    setStreet(""); // Reset street when hamlet changes
   };
 
   return (
@@ -88,18 +98,27 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
               <Input value={houseNo} onChange={(e) => setHouseNo(e.target.value)} className="tap-target text-base" />
             </div>
             <div className="grid grid-cols-[110px_1fr] items-center gap-3">
-              <Label className="text-sm font-medium">{t("street")} :</Label>
-              <Input value={street} onChange={(e) => setStreet(e.target.value)} className="tap-target text-base" />
-            </div>
-            <div className="grid grid-cols-[110px_1fr] items-center gap-3">
               <Label className="text-sm font-medium">{t("village")} :</Label>
-              <Select value={hamlet} onValueChange={setHamlet}>
+              <Select value={hamlet} onValueChange={handleHamletChange}>
                 <SelectTrigger className="tap-target text-base">
                   <SelectValue placeholder={t("selectHamlet")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {HAMLETS.map((h) => (
+                  {HAMLETS_LIST.map((h) => (
                     <SelectItem key={h} value={h} className="text-base py-3">{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-[110px_1fr] items-center gap-3">
+              <Label className="text-sm font-medium">{t("street")} :</Label>
+              <Select value={street} onValueChange={setStreet} disabled={!hamlet}>
+                <SelectTrigger className="tap-target text-base">
+                  <SelectValue placeholder="தெருவை தேர்ந்தெடுக்கவும்" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableStreets.map((s) => (
+                    <SelectItem key={s} value={s} className="text-base py-3">{s}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -115,7 +134,7 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
               <SelectValue placeholder="SHG குழுவை தேர்ந்தெடுக்கவும்" />
             </SelectTrigger>
             <SelectContent>
-              {SHG_NAMES.map((s) => (
+              {shgNames.map((s) => (
                 <SelectItem key={s} value={s} className="text-base py-3">{s}</SelectItem>
               ))}
             </SelectContent>

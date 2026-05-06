@@ -10,58 +10,55 @@ import { toast } from "sonner";
 const CrpApproveFarmersTab = () => {
   const { t } = useLanguage();
   const [farmers, setFarmers] = useState<any[]>([]);
-  const [statuses, setStatuses] = useState<Record<string, "approved" | "rejected">>({});
 
   useEffect(() => {
-    api.getFarmers().then(setFarmers).catch(() => {});
+    api.getPendingFarmers().then((data) => {
+      // backend returns all farmers; filter unapproved
+      const pending = data.filter ? data.filter((f: any) => !f.approved) : data;
+      setFarmers(pending);
+    }).catch(() => {});
   }, []);
 
-  const update = (id: string, status: "approved" | "rejected") => {
-    setStatuses((prev) => ({ ...prev, [id]: status }));
-    toast.success(status === "approved" ? t("farmerApproved") : t("farmerRejected"));
+  const pendingFarmers = farmers;
+
+  const handle = async (id: string, action: "approved" | "rejected") => {
+    if (action === "approved") await api.approveFarmer(id);
+    else await api.rejectFarmer(id);
+    setFarmers((prev) => prev.filter((f) => f._id !== id));
+    toast.success(action === "approved" ? "✅ விவசாயி அனுமதிக்கப்பட்டார்" : "❌ விவசாயி நிராகரிக்கப்பட்டார்");
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      <h2 className="text-lg font-bold text-center text-foreground">{t("addNewMembers")}</h2>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-foreground">{t("addNewMembers")}</h2>
+        <Badge className="bg-warning text-warning-foreground">{pendingFarmers.length} நிலுவை</Badge>
+      </div>
 
-      {farmers.length === 0 && (
-        <p className="text-sm text-center text-muted-foreground">நிலுவையில் உள்ள விண்ணப்பங்கள் இல்லை</p>
+      {pendingFarmers.length === 0 && (
+        <Card className="p-6 text-center text-muted-foreground">
+          <p className="text-sm">நிலுவையில் உள்ள விண்ணப்பங்கள் இல்லை</p>
+        </Card>
       )}
 
-      <div className="flex flex-col gap-3">
-        {farmers.map((f) => {
-          const status = statuses[f._id] ?? (f.approved ? "approved" : null);
-          return (
-            <Card key={f._id} className="p-4 bg-card">
-              <div className="flex items-start gap-3">
-                <div className="flex-1 border border-input rounded-md p-3 text-sm">
-                  <p className="font-bold text-foreground">{f.name}</p>
-                  <p className="text-muted-foreground text-xs mt-0.5">{f.phone}</p>
-                  <p className="text-muted-foreground text-xs">{f.hamlet}</p>
-                  <p className="text-muted-foreground text-xs">{f.shg_name}</p>
-                </div>
-                <div className="flex flex-col gap-2 shrink-0">
-                  {status === "approved" ? (
-                    <Badge className="bg-success text-success-foreground">{t("approved")}</Badge>
-                  ) : status === "rejected" ? (
-                    <Badge className="bg-danger text-danger-foreground">{t("rejected")}</Badge>
-                  ) : (
-                    <>
-                      <Button size="sm" onClick={() => update(f._id, "approved")} className="bg-success text-success-foreground gap-1">
-                        <Check size={14} /> {t("approve")}
-                      </Button>
-                      <Button size="sm" onClick={() => update(f._id, "rejected")} variant="outline" className="border-danger text-danger gap-1">
-                        <X size={14} /> {t("reject")}
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+      {pendingFarmers.map((f) => (
+        <Card key={f._id} className="p-4 bg-card flex items-center gap-3">
+          <div className="flex-1">
+            <p className="text-sm font-bold text-foreground">{f.name}</p>
+            <p className="text-xs text-muted-foreground">{f.phone}</p>
+            <p className="text-xs text-muted-foreground">{f.hamlet}</p>
+            <p className="text-xs text-muted-foreground">{f.shg_name}</p>
+          </div>
+          <div className="flex flex-col gap-2 shrink-0">
+            <Button size="sm" onClick={() => handle(f._id, "approved")} className="bg-success text-success-foreground gap-1">
+              <Check size={14} /> அனுமதி
+            </Button>
+            <Button size="sm" onClick={() => handle(f._id, "rejected")} variant="outline" className="border-danger text-danger gap-1">
+              <X size={14} /> நிராகரி
+            </Button>
+          </div>
+        </Card>
+      ))}
     </div>
   );
 };

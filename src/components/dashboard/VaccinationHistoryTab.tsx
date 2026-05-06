@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { formatTamilDate, isOverdue } from "@/lib/marketAndHistory";
 import { Calendar, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+
+function formatTamilDate(dateStr: string): string {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+function isOverdue(dateStr: string): boolean {
+  return !!dateStr && new Date(dateStr) < new Date();
+}
 
 const typeLabel: Record<string, string> = {
   white_diarrhea: "வெள்ளை கழிச்சல் தடுப்பூசி",
