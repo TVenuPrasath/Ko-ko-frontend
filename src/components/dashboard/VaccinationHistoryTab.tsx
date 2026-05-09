@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { Calendar, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { Calendar, CheckCircle2, Clock, AlertTriangle, Syringe } from "lucide-react";
 
 function formatTamilDate(dateStr: string): string {
   if (!dateStr) return "-";
@@ -20,74 +19,133 @@ const typeLabel: Record<string, string> = {
 
 const VaccinationHistoryTab = () => {
   const [records, setRecords] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<"completed" | "upcoming">("completed");
 
   useEffect(() => {
     api.getVaccinations().then(setRecords).catch(() => {});
   }, []);
 
-  const nextVac = records.find((r) => r.type !== "deworming");
-  const nextDeworm = records.find((r) => r.type === "deworming");
+  const today = new Date();
+  const completed = records.filter((r) => r.status === "completed");
+  const upcoming = records.filter((r) => r.nextDueDate && new Date(r.nextDueDate) >= today)
+    .sort((a, b) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime());
+  const overdue = records.filter((r) => r.nextDueDate && new Date(r.nextDueDate) < today);
+
+  const renderCard = (r: any) => (
+    <div key={r._id} className="bg-white rounded-2xl border border-border/60 shadow-sm p-4">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+          <Syringe size={18} className="text-primary" />
+        </div>
+        <div className="flex-1">
+          <p className="text-base font-bold text-foreground">{typeLabel[r.type] || r.type}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+            <Calendar size={11} /> தேதி: {formatTamilDate(r.dateGiven)}
+          </p>
+          {r.ageGroup && <p className="text-xs text-muted-foreground">வயது: {r.ageGroup}</p>}
+          <div className="flex items-center gap-2 mt-2">
+            {r.status === "completed" ? (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-success bg-success/10 px-2.5 py-1 rounded-lg">
+                <CheckCircle2 size={13} /> நிறைவேற்றப்பட்டது
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-warning bg-warning/10 px-2.5 py-1 rounded-lg">
+                <Clock size={13} /> நிலுவையில் உள்ளது
+              </span>
+            )}
+          </div>
+          {r.nextDueDate && (
+            <p className="text-xs mt-2 flex items-center gap-1">
+              {isOverdue(r.nextDueDate) && <AlertTriangle size={13} className="text-danger" />}
+              <span className="text-muted-foreground">அடுத்த தேதி:</span>{" "}
+              <span className={`font-semibold ${isOverdue(r.nextDueDate) ? "text-danger" : "text-foreground"}`}>
+                {formatTamilDate(r.nextDueDate)}
+              </span>
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="bg-primary text-primary-foreground p-4 rounded-xl">
-        <p className="text-base font-bold">தடுப்பூசி வரலாறு</p>
-        <p className="text-xs opacity-90">(Vaccination & Deworming History)</p>
-      </Card>
+      {/* Header */}
+      <div className="rounded-2xl p-4 text-white shadow-sm" style={{ background: "linear-gradient(135deg, #2E7D32, #4CAF50)" }}>
+        <div className="flex items-center gap-3">
+          <Syringe size={22} className="text-white" />
+          <div>
+            <p className="text-base font-bold">தடுப்பூசி வரலாறு</p>
+            <p className="text-xs opacity-80">(Vaccination & Deworming History)</p>
+          </div>
+        </div>
+      </div>
 
-      {/* Next due banners */}
-      {nextVac && (
-        <Card className={`p-3 border-2 ${isOverdue(nextVac.nextDueDate) ? "border-danger bg-danger/10" : "border-primary bg-primary/5"}`}>
-          <p className="text-xs text-muted-foreground">அடுத்த தடுப்பூசி தேதி</p>
-          <p className={`text-base font-bold ${isOverdue(nextVac.nextDueDate) ? "text-danger" : "text-primary"}`}>
-            {formatTamilDate(nextVac.nextDueDate)} {isOverdue(nextVac.nextDueDate) && "⚠️ காலாவதி"}
-          </p>
-        </Card>
-      )}
-      {nextDeworm && (
-        <Card className={`p-3 border-2 ${isOverdue(nextDeworm.nextDueDate) ? "border-danger bg-danger/10" : "border-primary bg-primary/5"}`}>
-          <p className="text-xs text-muted-foreground">அடுத்த குடற்புழு நீக்கம் தேதி</p>
-          <p className={`text-base font-bold ${isOverdue(nextDeworm.nextDueDate) ? "text-danger" : "text-primary"}`}>
-            {formatTamilDate(nextDeworm.nextDueDate)} {isOverdue(nextDeworm.nextDueDate) && "⚠️ காலாவதி"}
-          </p>
-        </Card>
-      )}
+      {/* Tabs */}
+      <div className="flex gap-2 bg-muted/40 p-1 rounded-xl">
+        <button
+          onClick={() => setActiveTab("completed")}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === "completed"
+              ? "bg-white text-primary shadow-sm"
+              : "text-muted-foreground"
+          }`}
+        >
+          முடிந்தவை ({completed.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("upcoming")}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === "upcoming"
+              ? "bg-white text-warning shadow-sm"
+              : "text-muted-foreground"
+          }`}
+        >
+          வரவிருக்கும் ({upcoming.length})
+        </button>
+      </div>
 
-      {records.length === 0 ? (
-        <Card className="p-6 text-center text-muted-foreground">
-          இன்னும் பதிவுகள் இல்லை. CRP தடுப்பூசி பதிவு செய்த பிறகு இங்கே தெரியும்.
-        </Card>
-      ) : (
-        records.map((r) => (
-          <Card key={r._id} className="p-4 border-2">
-            <div className="flex items-start gap-3">
-              <Calendar size={22} className="text-primary shrink-0 mt-1" />
-              <div className="flex-1">
-                <p className="text-base font-bold text-foreground">{typeLabel[r.type] || r.type}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">தேதி: {formatTamilDate(r.dateGiven)}</p>
-                {r.ageGroup && <p className="text-xs text-muted-foreground">வயது: {r.ageGroup}</p>}
-                <div className="flex items-center gap-2 mt-2">
-                  {r.status === "completed" ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-success bg-success/10 px-2 py-1 rounded">
-                      <CheckCircle2 size={14} /> நிறைவேற்றப்பட்டது
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-warning bg-warning/10 px-2 py-1 rounded">
-                      <Clock size={14} /> நிலுவையில் உள்ளது
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs mt-2 flex items-center gap-1">
-                  {isOverdue(r.nextDueDate) && r.status === "pending" && <AlertTriangle size={14} className="text-danger" />}
-                  அடுத்த தேதி:{" "}
-                  <span className={isOverdue(r.nextDueDate) ? "text-danger font-bold" : "font-medium"}>
-                    {formatTamilDate(r.nextDueDate)}
-                  </span>
-                </p>
-              </div>
+      {activeTab === "completed" && (
+        completed.length === 0
+          ? (
+            <div className="bg-white rounded-2xl border border-border/60 p-8 text-center">
+              <Syringe size={32} className="mx-auto mb-3 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">இன்னும் பதிவுகள் இல்லை. CRP தடுப்பூசி பதிவு செய்த பிறகு இங்கே தெரியும்.</p>
             </div>
-          </Card>
-        ))
+          )
+          : <div className="flex flex-col gap-3">{completed.map(renderCard)}</div>
+      )}
+
+      {activeTab === "upcoming" && (
+        upcoming.length === 0 && overdue.length === 0
+          ? (
+            <div className="bg-white rounded-2xl border border-border/60 p-8 text-center">
+              <Clock size={32} className="mx-auto mb-3 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">வரவிருக்கும் தேதிகள் இல்லை.</p>
+            </div>
+          )
+          : (
+            <>
+              {overdue.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-xs font-bold text-danger flex items-center gap-1.5 px-1">
+                    <AlertTriangle size={13} /> காலாவதியானவை ({overdue.length})
+                  </p>
+                  {overdue.map(renderCard)}
+                </div>
+              )}
+              {upcoming.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  {overdue.length > 0 && (
+                    <p className="text-xs font-bold text-primary flex items-center gap-1.5 px-1">
+                      <Clock size={13} /> வரவிருக்கும் ({upcoming.length})
+                    </p>
+                  )}
+                  {upcoming.map(renderCard)}
+                </div>
+              )}
+            </>
+          )
       )}
     </div>
   );

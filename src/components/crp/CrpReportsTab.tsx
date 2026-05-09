@@ -189,6 +189,75 @@ const CrpReportsTab = () => {
         </div>
       </Section>
 
+      <Section title="கோரிக்கையாளர் பட்டியல்" defaultOpen={false}
+        onExcel={() => {
+          const type = demandTypes.find((_, i) => i === 0) || "Loan";
+          const allRows: (string | number)[][] = demandTypes.flatMap((type) =>
+            demands.filter((d) => d.type === type).map((d, i) => [
+              type, i + 1, d.userId?.name || d.farmerName || "-",
+              d.userId?.hamlet || d.hamlet || "-",
+              d.type === "Loan" ? `₹${(d.amount || 0).toLocaleString()}` : (d.quantity || "-"),
+              d.status, formatDate(d.createdAt),
+            ])
+          );
+          downloadExcel(["வகை", "#", "பெயர்", "ஊர்", "தொகை/அளவு", "நிலை", "தேதி"], allRows, "demand_farmers_list");
+        }}
+        onPdf={async () => {
+          for (const type of demandTypes) {
+            const list = demands.filter((d) => d.type === type);
+            if (list.length === 0) continue;
+            const rows = list.map((d, i) => [
+              i + 1, d.userId?.name || d.farmerName || "-",
+              d.userId?.hamlet || d.hamlet || "-",
+              type === "Loan" ? `Rs.${(d.amount || 0).toLocaleString()}` : (d.quantity || "-"),
+              d.status, formatDate(d.createdAt),
+            ]);
+            await downloadPDF(`${type} கோரிக்கையாளர் பட்டியல் (${list.length} பேர்)`, ["#", "பெயர்", "ஊர்", "தொகை/அளவு", "நிலை", "தேதி"], rows, `${type}_farmers`);
+          }
+        }}>
+        <div className="flex flex-col gap-4">
+          {demandTypes.map((type) => {
+            const list = demands.filter((d) => d.type === type);
+            if (list.length === 0) return null;
+            return (
+              <div key={type}>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold text-foreground">{type}</p>
+                  <Badge className="bg-primary text-primary-foreground text-xs">{list.length} பேர்</Badge>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead><tr className="border-b border-border">
+                      <th className="text-left py-1.5 px-1 text-muted-foreground">#</th>
+                      <th className="text-left py-1.5 px-1 text-muted-foreground">பெயர்</th>
+                      <th className="text-left py-1.5 px-1 text-muted-foreground">ஊர்</th>
+                      <th className="text-left py-1.5 px-1 text-muted-foreground">தொகை/அளவு</th>
+                      <th className="text-left py-1.5 px-1 text-muted-foreground">நிலை</th>
+                    </tr></thead>
+                    <tbody>
+                      {list.map((d, i) => (
+                        <tr key={d._id} className="border-b border-border/40">
+                          <td className="py-1.5 px-1 text-muted-foreground">{i + 1}</td>
+                          <td className="py-1.5 px-1 font-medium text-foreground">{d.userId?.name || d.farmerName || "-"}</td>
+                          <td className="py-1.5 px-1 text-foreground">{d.userId?.hamlet || d.hamlet || "-"}</td>
+                          <td className="py-1.5 px-1 text-foreground">{type === "Loan" ? `₹${(d.amount || 0).toLocaleString()}` : (d.quantity || "-")}</td>
+                          <td className="py-1.5 px-1">
+                            <span className={`font-semibold ${
+                              d.status === "Completed" ? "text-success" :
+                              d.status === "Rejected" ? "text-danger" : "text-warning"
+                            }`}>{d.status}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
       <Section title="நோய் அறிக்கை பதிவு" count={pendingDisease.length} defaultOpen={true}
         onExcel={() => downloadExcel(diseaseHeadersTamil, diseaseRows, "disease_reports")}
         onPdf={() => downloadPDF("நோய் அறிக்கை பதிவு", diseaseHeadersTamil, diseaseRows, "disease_reports")}>

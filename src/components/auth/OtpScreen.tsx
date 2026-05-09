@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { User } from "@/lib/auth";
 import { api } from "@/lib/api";
@@ -76,58 +75,65 @@ const OtpScreen = ({ phone, devOtp, onVerified, onBack }: OtpScreenProps) => {
   const isComplete = otp.every((d) => d !== "");
 
   return (
-    <div className="flex flex-col min-h-screen p-5">
-      <button onClick={onBack} className="flex items-center gap-1 text-primary mb-4 tap-target justify-start">
-        <ArrowLeft size={20} /> {t("back")}
-      </button>
+    <div className="flex flex-col min-h-screen" style={{ background: "linear-gradient(160deg, #f1f8e9 0%, #e8f5e9 50%, #f9fbe7 100%)" }}>
+      {/* Header strip */}
+      <div className="agri-header-gradient px-5 pt-12 pb-8 flex flex-col">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-white/80 hover:text-white mb-5 w-fit">
+          <ArrowLeft size={18} /> <span className="text-sm font-medium">{t("back")}</span>
+        </button>
+        <h1 className="text-xl font-bold text-white">{t("otpVerification")}</h1>
+        <p className="text-sm text-white/75 mt-1">{t("otpSentTo")} <span className="font-bold text-white">{phone}</span></p>
+      </div>
 
-      <Card className="p-5 bg-card flex flex-col gap-4">
-        <div>
-          <h1 className="text-lg font-bold text-foreground">{t("otpVerification")}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("otpSentTo")} {phone}</p>
-          {devOtp && (
-            <p className="text-xs mt-2 bg-muted px-3 py-1.5 rounded font-mono text-foreground">
-              OTP: <span className="font-bold text-primary">{devOtp}</span>
-            </p>
-          )}
+      <div className="flex-1 px-5 py-6 flex flex-col gap-5">
+        {devOtp && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2">
+            <span className="text-amber-500 text-lg">🔑</span>
+            <p className="text-sm text-amber-800">சோதனை OTP: <span className="font-bold font-mono text-amber-900 text-base">{devOtp}</span></p>
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl border border-border/60 shadow-sm p-5 flex flex-col gap-5">
+          <Label className="text-sm font-semibold text-foreground">{t("enterOtp")}</Label>
+
+          <div className="flex gap-2.5 justify-center">
+            {otp.map((digit, i) => (
+              <input
+                key={i}
+                ref={(el) => { refs.current[i] = el; }}
+                type="tel"
+                inputMode="numeric"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handleChange(i, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(i, e)}
+                className={`w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 bg-white focus:outline-none transition-all ${
+                  digit ? "border-primary bg-primary/5 text-primary" : "border-input text-foreground"
+                } focus:border-primary focus:ring-2 focus:ring-primary/20`}
+              />
+            ))}
+          </div>
+
+          <Button
+            onClick={handleVerify}
+            disabled={!isComplete || loading}
+            className="tap-target w-full text-base font-bold rounded-xl shadow-sm disabled:opacity-40"
+            style={{ background: isComplete ? "linear-gradient(135deg, #2E7D32, #4CAF50)" : undefined }}
+          >
+            {loading ? <Loader2 className="animate-spin" size={20} /> : t("verifyOtp") + " →"}
+          </Button>
+
+          <div className="text-center">
+            {resendTimer > 0 ? (
+              <p className="text-xs text-muted-foreground">மீண்டும் அனுப்ப காத்திருக்கவும்... <span className="font-bold text-primary">{resendTimer}s</span></p>
+            ) : (
+              <button onClick={handleResend} className="text-primary font-semibold text-sm underline underline-offset-2">
+                {t("resendOtp")}
+              </button>
+            )}
+          </div>
         </div>
-
-        <Label className="text-base font-medium">{t("enterOtp")} :</Label>
-
-        <div className="flex gap-2 justify-center">
-          {otp.map((digit, i) => (
-            <input
-              key={i}
-              ref={(el) => { refs.current[i] = el; }}
-              type="tel"
-              inputMode="numeric"
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleChange(i, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(i, e)}
-              className="w-11 h-14 text-center text-2xl font-bold border-2 border-input rounded-lg bg-card focus:border-primary focus:outline-none"
-            />
-          ))}
-        </div>
-
-        <Button
-          onClick={handleVerify}
-          disabled={!isComplete || loading}
-          className="tap-target w-full text-lg font-semibold bg-primary text-primary-foreground"
-        >
-          {loading ? <Loader2 className="animate-spin" size={20} /> : t("verifyOtp")}
-        </Button>
-
-        <div className="text-center">
-          {resendTimer > 0 ? (
-            <p className="text-xs italic text-muted-foreground">மீண்டும் அனுப்ப... {resendTimer}s</p>
-          ) : (
-            <button onClick={handleResend} className="text-primary font-medium text-sm underline">
-              {t("resendOtp")}
-            </button>
-          )}
-        </div>
-      </Card>
+      </div>
     </div>
   );
 };

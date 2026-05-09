@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { User, clearUser } from "@/lib/auth";
 import { Home, ClipboardList, Bug, Bell, LogOut, IndianRupee } from "lucide-react";
+import { api } from "@/lib/api";
 import HomeTab from "./HomeTab";
 import WeeklyUpdateTab from "./WeeklyUpdateTab";
 import DiseaseReportTab from "./DiseaseReportTab";
@@ -21,6 +22,44 @@ type Tab = "home" | "weekly" | "disease" | "history" | "prices" | "notifications
 const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const { t, lang, setLang } = useLanguage();
   const [tab, setTab] = useState<Tab>("home");
+  const [notifCount, setNotifCount] = useState(0);
+  const [loanCount, setLoanCount] = useState(0);
+
+  useEffect(() => {
+    api.getNotifications().then((n) => {
+      const seen: string[] = JSON.parse(localStorage.getItem("seen_notifications") || "[]");
+      const unseen = n.filter((x: any) => !seen.includes(x._id));
+      setNotifCount(unseen.length);
+    }).catch(() => {});
+    api.getServiceDemands().then((d: any[]) => {
+      const seenKey = "seen_actioned_demands";
+      const seen: string[] = JSON.parse(localStorage.getItem(seenKey) || "[]");
+      const actioned = d.filter((s) =>
+        (s.status === "Completed" || s.status === "Rejected") && !seen.includes(s._id)
+      );
+      setLoanCount(actioned.length);
+    }).catch(() => {});
+  }, []);
+
+  const handleTabChange = (key: Tab) => {
+    setTab(key);
+    if (key === "notifications") {
+      setNotifCount(0);
+      api.getNotifications().then((n) => {
+        const ids = n.map((x: any) => x._id);
+        localStorage.setItem("seen_notifications", JSON.stringify(ids));
+      }).catch(() => {});
+    }
+    if (key === "loan") {
+      setLoanCount(0);
+      api.getServiceDemands().then((d: any[]) => {
+        const actioned = d
+          .filter((s) => s.status === "Completed" || s.status === "Rejected")
+          .map((s) => s._id);
+        localStorage.setItem("seen_actioned_demands", JSON.stringify(actioned));
+      }).catch(() => {});
+    }
+  };
 
   const handleLogout = () => {
     clearUser();
@@ -35,27 +74,31 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="text-base font-bold text-foreground leading-tight">கோ-கோ செயலி</h1>
-          <p className="text-xs text-muted-foreground">கோணாங்கிப்பட்டி கோழி செயலி</p>
+    <div className="flex flex-col min-h-screen" style={{ background: "linear-gradient(180deg, #f1f8e9 0%, #fafff8 100%)" }}>
+      {/* Header */}
+      <header className="sticky top-0 z-10 border-b border-border/50 px-4 py-3 flex items-center justify-between" style={{ background: "linear-gradient(135deg, #2E7D32, #388E3C)" }}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-lg">🐔</div>
+          <div>
+            <h1 className="text-sm font-bold text-white leading-tight">கோ-கோ செயலி</h1>
+            <p className="text-[10px] text-white/70">கோணாங்கிப்பட்டி கோழி செயலி</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setLang(lang === "ta" ? "en" : "ta")}
-            className="text-xs font-bold border border-border rounded-md px-2 py-1 text-muted-foreground hover:text-foreground"
+            className="text-xs font-bold border border-white/30 rounded-lg px-2.5 py-1 text-white/80 hover:text-white hover:border-white/60 bg-white/10"
           >
             {lang === "ta" ? "EN" : "தமிழ்"}
           </button>
-          <button onClick={handleLogout} className="text-muted-foreground p-1">
-            <LogOut size={20} />
+          <button onClick={handleLogout} className="text-white/70 hover:text-white p-1.5 rounded-lg hover:bg-white/10">
+            <LogOut size={18} />
           </button>
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 pb-24">
-        {tab === "home" && <HomeTab user={user} onNavigate={(t) => setTab(t)} />}
+        {tab === "home" && <HomeTab user={user} onNavigate={(t) => handleTabChange(t)} />}
         {tab === "weekly" && <WeeklyUpdateTab />}
         {tab === "disease" && <DiseaseReportTab user={user} />}
         {tab === "history" && <VaccinationHistoryTab />}
@@ -69,18 +112,38 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-10">
+      {/* Bottom nav */}
+      <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-border/40" style={{ background: "rgba(255,255,255,0.97)", backdropFilter: "blur(8px)" }}>
         <div className="max-w-[430px] mx-auto flex">
           {tabs.map(({ key, icon: Icon, label }) => (
             <button
               key={key}
-              onClick={() => setTab(key)}
-              className={`flex-1 flex flex-col items-center py-2 gap-1 tap-target ${
+              onClick={() => handleTabChange(key)}
+              className={`flex-1 flex flex-col items-center py-2.5 gap-1 transition-all ${
                 tab === key ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              <Icon size={20} />
-              <span className="text-[9px] font-medium leading-tight text-center whitespace-nowrap">{label}</span>
+              <div className="relative">
+                <div className={`p-1.5 rounded-xl transition-all ${
+                  tab === key ? "bg-primary/10" : ""
+                }`}>
+                  <Icon size={20} strokeWidth={tab === key ? 2.5 : 1.8} />
+                </div>
+                {key === "notifications" && notifCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-danger text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5 animate-soft-pulse">
+                    {notifCount > 99 ? "99+" : notifCount}
+                  </span>
+                )}
+                {key === "loan" && loanCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-warning text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5">
+                    {loanCount > 99 ? "99+" : loanCount}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] font-semibold leading-tight text-center whitespace-nowrap ${
+                tab === key ? "text-primary" : "text-muted-foreground"
+              }`}>{label}</span>
+              {tab === key && <div className="w-5 h-0.5 bg-primary rounded-full" />}
             </button>
           ))}
         </div>

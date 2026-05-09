@@ -3,7 +3,6 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HAMLET_STREETS } from "@/lib/auth";
 import { api } from "@/lib/api";
@@ -39,7 +38,6 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
   }, []);
 
   const availableStreets = hamlet ? HAMLET_STREETS[hamlet] || [] : [];
-
   const isValid = name.trim() && phone.length === 10 && hamlet && street && shgName;
 
   const handleSubmit = async () => {
@@ -52,55 +50,67 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
 
   const handleHamletChange = (value: string) => {
     setHamlet(value);
-    setStreet(""); // Reset street when hamlet changes
+    setStreet("");
   };
 
+  const FieldRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-sm font-semibold text-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col min-h-screen p-5">
-      <button onClick={onBack} className="flex items-center gap-1 text-primary mb-4 tap-target justify-start">
-        <ArrowLeft size={20} /> {t("back")}
-      </button>
+    <div className="flex flex-col min-h-screen" style={{ background: "linear-gradient(160deg, #f1f8e9 0%, #e8f5e9 50%, #f9fbe7 100%)" }}>
+      {/* Header */}
+      <div className="agri-header-gradient px-5 pt-12 pb-8">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-white/80 hover:text-white mb-4 w-fit">
+          <ArrowLeft size={18} /> <span className="text-sm font-medium">{t("back")}</span>
+        </button>
+        <h1 className="text-xl font-bold text-white">{t("registration")}</h1>
+        <p className="text-sm text-white/75 mt-1">புதிய விவசாயி பதிவு செய்யவும்</p>
+      </div>
 
-      <h1 className="text-xl font-bold mb-5 text-center text-foreground">{t("registration")}</h1>
+      <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl border border-border/60 shadow-sm p-5 flex flex-col gap-4">
 
-      <Card className="p-5 bg-card flex flex-col gap-4">
+          <FieldRow label={t("fullName")}>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="tap-target text-base border-2 focus:border-primary rounded-xl"
+              placeholder="உங்கள் பெயர்"
+            />
+          </FieldRow>
 
-        {/* Name */}
-        <div className="grid grid-cols-[110px_1fr] items-center gap-3">
-          <Label className="text-base font-medium">{t("fullName")} :</Label>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="tap-target text-base"
-            placeholder="உங்கள் பெயர்"
-          />
-        </div>
+          <FieldRow label={t("phoneNumber")}>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              className="tap-target text-base border-2 focus:border-primary rounded-xl tracking-widest font-semibold"
+              inputMode="numeric"
+              type="tel"
+              placeholder="9876543210"
+            />
+          </FieldRow>
 
-        {/* Phone */}
-        <div className="grid grid-cols-[110px_1fr] items-center gap-3">
-          <Label className="text-base font-medium">{t("phoneNumber")} :</Label>
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-            className="tap-target text-base"
-            inputMode="numeric"
-            type="tel"
-            placeholder="9876543210"
-          />
-        </div>
+          {/* Address section */}
+          <div className="bg-muted/40 rounded-xl p-4 flex flex-col gap-3">
+            <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+              <span>🏠</span> {t("address")}
+            </p>
 
-        {/* Address */}
-        <div>
-          <Label className="text-base font-medium mb-2 block">{t("address")} :</Label>
-          <div className="pl-4 flex flex-col gap-3">
-            <div className="grid grid-cols-[110px_1fr] items-center gap-3">
-              <Label className="text-sm font-medium">{t("houseNo")}:</Label>
-              <Input value={houseNo} onChange={(e) => setHouseNo(e.target.value)} className="tap-target text-base" />
-            </div>
-            <div className="grid grid-cols-[110px_1fr] items-center gap-3">
-              <Label className="text-sm font-medium">{t("village")} :</Label>
+            <FieldRow label={t("houseNo")}>
+              <Input
+                value={houseNo}
+                onChange={(e) => setHouseNo(e.target.value)}
+                className="tap-target text-base bg-white border-2 focus:border-primary rounded-xl"
+              />
+            </FieldRow>
+
+            <FieldRow label={t("village")}>
               <Select value={hamlet} onValueChange={handleHamletChange}>
-                <SelectTrigger className="tap-target text-base">
+                <SelectTrigger className="tap-target text-base bg-white border-2 focus:border-primary rounded-xl">
                   <SelectValue placeholder={t("selectHamlet")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -109,11 +119,11 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid grid-cols-[110px_1fr] items-center gap-3">
-              <Label className="text-sm font-medium">{t("street")} :</Label>
+            </FieldRow>
+
+            <FieldRow label={t("street")}>
               <Select value={street} onValueChange={setStreet} disabled={!hamlet}>
-                <SelectTrigger className="tap-target text-base">
+                <SelectTrigger className="tap-target text-base bg-white border-2 focus:border-primary rounded-xl">
                   <SelectValue placeholder="தெருவை தேர்ந்தெடுக்கவும்" />
                 </SelectTrigger>
                 <SelectContent>
@@ -122,34 +132,32 @@ const RegistrationScreen = ({ onNext, onBack }: RegistrationScreenProps) => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FieldRow>
           </div>
+
+          <FieldRow label={t("shgGroupName")}>
+            <Select value={shgName} onValueChange={setShgName}>
+              <SelectTrigger className="tap-target text-base border-2 focus:border-primary rounded-xl">
+                <SelectValue placeholder="SHG குழுவை தேர்ந்தெடுக்கவும்" />
+              </SelectTrigger>
+              <SelectContent>
+                {shgNames.map((s) => (
+                  <SelectItem key={s} value={s} className="text-base py-3">{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FieldRow>
         </div>
 
-        {/* SHG Group Name */}
-        <div className="grid grid-cols-[110px_1fr] items-center gap-3">
-          <Label className="text-base font-medium">{t("shgGroupName")} :</Label>
-          <Select value={shgName} onValueChange={setShgName}>
-            <SelectTrigger className="tap-target text-base">
-              <SelectValue placeholder="SHG குழுவை தேர்ந்தெடுக்கவும்" />
-            </SelectTrigger>
-            <SelectContent>
-              {shgNames.map((s) => (
-                <SelectItem key={s} value={s} className="text-base py-3">{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-      </Card>
-
-      <Button
-        onClick={handleSubmit}
-        disabled={!isValid || loading}
-        className="tap-target w-full text-lg font-semibold mt-6 bg-primary text-primary-foreground"
-      >
-        {loading ? <Loader2 className="animate-spin" size={20} /> : t("submit")}
-      </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={!isValid || loading}
+          className="tap-target w-full text-base font-bold rounded-xl shadow-sm disabled:opacity-40 mt-1"
+          style={{ background: isValid ? "linear-gradient(135deg, #2E7D32, #4CAF50)" : undefined }}
+        >
+          {loading ? <Loader2 className="animate-spin" size={20} /> : t("submit") + " →"}
+        </Button>
+      </div>
     </div>
   );
 };

@@ -89,14 +89,14 @@ const Index = () => {
   if (screen === "app" && user) {
     if (user.role === "CRP") return <CrpDashboard user={user} onLogout={handleLogout} />;
     return (
-      <div className="max-w-[430px] mx-auto min-h-screen bg-card shadow-lg">
+      <div className="max-w-[430px] mx-auto min-h-screen shadow-lg">
         <Dashboard user={user} onLogout={handleLogout} />
       </div>
     );
   }
 
   return (
-    <div className="max-w-[430px] mx-auto min-h-screen bg-card shadow-lg">
+    <div className="max-w-[430px] mx-auto min-h-screen shadow-lg" style={{ background: "linear-gradient(160deg, #f1f8e9 0%, #e8f5e9 50%, #f9fbe7 100%)" }}>
       {screen === "choose" && (
         <ChooseActionScreen onRegister={() => setScreen("register")} onLogin={handleLogin} />
       )}

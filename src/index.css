@@ -6,49 +6,54 @@
 
 @layer base {
   :root {
-    --background: 120 20% 96%;
-    --foreground: 120 25% 10%;
+    /* Agriculture-inspired warm earthy palette */
+    --background: 80 30% 96%;
+    --foreground: 120 30% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 120 25% 10%;
+    --card-foreground: 120 30% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 120 25% 10%;
+    --popover-foreground: 120 30% 12%;
 
-    --primary: 134 61% 28%;
+    /* Forest Green #2E7D32 */
+    --primary: 123 47% 34%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 142 40% 45%;
+    /* Leaf Green #4CAF50 */
+    --secondary: 122 39% 49%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 120 15% 92%;
-    --muted-foreground: 120 8% 40%;
+    --muted: 90 20% 93%;
+    --muted-foreground: 120 10% 42%;
 
-    --accent: 142 40% 45%;
+    --accent: 122 39% 49%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 120 12% 85%;
-    --input: 120 12% 85%;
-    --ring: 134 61% 28%;
+    /* Soft earthy border */
+    --border: 90 15% 87%;
+    --input: 90 15% 87%;
+    --ring: 123 47% 34%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
 
-    --sidebar-background: 120 20% 96%;
-    --sidebar-foreground: 120 25% 10%;
-    --sidebar-primary: 134 61% 28%;
+    --sidebar-background: 80 30% 96%;
+    --sidebar-foreground: 120 30% 12%;
+    --sidebar-primary: 123 47% 34%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 120 15% 92%;
-    --sidebar-accent-foreground: 120 25% 10%;
-    --sidebar-border: 120 12% 85%;
-    --sidebar-ring: 134 61% 28%;
+    --sidebar-accent: 90 20% 93%;
+    --sidebar-accent-foreground: 120 30% 12%;
+    --sidebar-border: 90 15% 87%;
+    --sidebar-ring: 123 47% 34%;
 
     --success: 142 71% 38%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 48%;
-    --warning-foreground: 0 0% 100%;
+    /* Harvest Yellow #F9A825 */
+    --warning: 43 95% 56%;
+    --warning-foreground: 0 0% 10%;
     --danger: 0 72% 51%;
     --danger-foreground: 0 0% 100%;
   }
@@ -65,12 +70,41 @@
     font-size: 16px;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Smooth transitions on interactive elements */
+  button, a, input, select, textarea {
+    transition: all 0.15s ease;
+  }
 }
 
 @layer utilities {
   .tap-target {
     @apply min-h-[52px] flex items-center justify-center;
   }
+
+  /* Agriculture card with soft shadow */
+  .agri-card {
+    @apply bg-white rounded-2xl shadow-sm border border-border/60;
+  }
+
+  /* Gradient header for hero sections */
+  .agri-header-gradient {
+    background: linear-gradient(135deg, hsl(123 47% 34%) 0%, hsl(122 39% 49%) 100%);
+  }
+
+  /* Warm earthy section background */
+  .agri-section-bg {
+    background: linear-gradient(180deg, hsl(80 30% 96%) 0%, hsl(90 25% 98%) 100%);
+  }
+
+  /* Soil brown accent */
+  .text-soil { color: #8D6E63; }
+  .bg-soil { background-color: #8D6E63; }
+  .border-soil { border-color: #8D6E63; }
+
+  /* Harvest yellow accent */
+  .text-harvest { color: #F9A825; }
+  .bg-harvest { background-color: #F9A825; }
 
   @keyframes marquee {
     0% { transform: translateX(100%); }
@@ -79,5 +113,14 @@
   .animate-marquee {
     display: inline-block;
     animation: marquee 18s linear infinite;
+  }
+
+  /* Soft pulse for badges */
+  @keyframes soft-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.75; }
+  }
+  .animate-soft-pulse {
+    animation: soft-pulse 2s ease-in-out infinite;
   }
 }

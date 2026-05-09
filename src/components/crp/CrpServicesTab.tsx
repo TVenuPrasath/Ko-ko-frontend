@@ -20,27 +20,33 @@ const CrpServicesTab = ({ user }: { user: User }) => {
   }, []);
 
   const [vaxHamlet, setVaxHamlet] = useState("");
+  const [vaxSearch, setVaxSearch] = useState("");
   const [vaxFarmer, setVaxFarmer] = useState("");
-  const [vaccineType, setVaccineType] = useState("Newcastle (R2B)");
+  const [vaccineType, setVaccineType] = useState("");
   const [vaxDate, setVaxDate] = useState(new Date().toISOString().split("T")[0]);
   const [vaxNextDue, setVaxNextDue] = useState("");
   const [vaxLoading, setVaxLoading] = useState(false);
 
   const [dewHamlet, setDewHamlet] = useState("");
+  const [dewSearch, setDewSearch] = useState("");
   const [dewFarmer, setDewFarmer] = useState("");
   const [dewDate, setDewDate] = useState(new Date().toISOString().split("T")[0]);
   const [dewNextDue, setDewNextDue] = useState("");
   const [dewLoading, setDewLoading] = useState(false);
 
-  const vaxFarmers = vaxHamlet ? farmers.filter((f) => f.hamlet === vaxHamlet) : farmers;
-  const dewFarmers = dewHamlet ? farmers.filter((f) => f.hamlet === dewHamlet) : farmers;
+  const vaxFarmers = farmers
+    .filter((f) => !vaxHamlet || f.hamlet === vaxHamlet)
+    .filter((f) => !vaxSearch || f.name.toLowerCase().includes(vaxSearch.toLowerCase()));
+  const dewFarmers = farmers
+    .filter((f) => !dewHamlet || f.hamlet === dewHamlet)
+    .filter((f) => !dewSearch || f.name.toLowerCase().includes(dewSearch.toLowerCase()));
 
   const handleVaxSave = async () => {
     setVaxLoading(true);
     await api.addVaccination({ userId: vaxFarmer, type: vaccineType.toLowerCase().includes("smallpox") ? "smallpox" : "white_diarrhea", ageGroup: vaccineType, dateGiven: vaxDate, nextDueDate: vaxNextDue, status: "completed" });
     setVaxLoading(false);
     toast.success(t("saved") + " ✅ தடுப்பூசி பதிவு சேமிக்கப்பட்டது");
-    setVaxFarmer(""); setVaxNextDue("");
+    setVaxFarmer(""); setVaxNextDue(""); setVaxSearch("");
   };
 
   const handleDewSave = async () => {
@@ -48,7 +54,7 @@ const CrpServicesTab = ({ user }: { user: User }) => {
     await api.addVaccination({ userId: dewFarmer, type: "deworming", dateGiven: dewDate, nextDueDate: dewNextDue, status: "completed" });
     setDewLoading(false);
     toast.success(t("saved") + " ✅ குடற்புழு நீக்கம் பதிவு சேமிக்கப்பட்டது");
-    setDewFarmer(""); setDewNextDue("");
+    setDewFarmer(""); setDewNextDue(""); setDewSearch("");
   };
 
   const [allDemands, setAllDemands] = useState<any[]>([]);
@@ -99,6 +105,7 @@ const CrpServicesTab = ({ user }: { user: User }) => {
             <option value="">{t("allHamlets")}</option>
             {HAMLETS.map((h) => <option key={h} value={h}>{h}</option>)}
           </select>
+          <Input value={vaxSearch} onChange={(e) => { setVaxSearch(e.target.value); setVaxFarmer(""); }} placeholder="விவசாயி பெயர் தேடுக..." className="tap-target" />
           <select value={vaxFarmer} onChange={(e) => setVaxFarmer(e.target.value)} className="border border-input rounded-md px-3 py-2.5 text-sm bg-card text-foreground">
             <option value="">{t("selectFarmer")}</option>
             {vaxFarmers.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
@@ -122,6 +129,7 @@ const CrpServicesTab = ({ user }: { user: User }) => {
             <option value="">{t("allHamlets")}</option>
             {HAMLETS.map((h) => <option key={h} value={h}>{h}</option>)}
           </select>
+          <Input value={dewSearch} onChange={(e) => { setDewSearch(e.target.value); setDewFarmer(""); }} placeholder="விவசாயி பெயர் தேடுக..." className="tap-target" />
           <select value={dewFarmer} onChange={(e) => setDewFarmer(e.target.value)} className="border border-input rounded-md px-3 py-2.5 text-sm bg-card text-foreground">
             <option value="">{t("selectFarmer")}</option>
             {dewFarmers.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
