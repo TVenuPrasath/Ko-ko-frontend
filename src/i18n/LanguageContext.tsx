@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
 import ta from "./ta.json";
 import en from "./en.json";
 
-type Lang = "ta" | "en";
+export type Lang = "ta" | "en";
 const translations = { ta, en } as const;
 
-type TranslationKey = keyof typeof ta;
+export type TranslationKey = keyof typeof ta;
 
 interface LanguageContextType {
   lang: Lang;
@@ -16,26 +16,24 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType>({
   lang: "ta",
   setLang: () => {},
-  t: (key) => key,
+  t: (key) => String(key),
 });
 
 export const LanguageProvider = ({ children }: { children: React.ReactNode }) => {
   const [lang, setLangState] = useState<Lang>(
     () => (localStorage.getItem("app_lang") as Lang) || "ta"
   );
-  const langRef = useRef(lang);
 
-  const setLang = (l: Lang) => {
-    langRef.current = l;
+  const setLang = useCallback((l: Lang) => {
     setLangState(l);
     localStorage.setItem("app_lang", l);
-  };
+  }, []);
 
-  const t = (key: TranslationKey): string => {
-    const dict = translations[langRef.current] as Record<string, string>;
+  const t = useCallback((key: TranslationKey): string => {
+    const dict = translations[lang] as Record<string, string>;
     const fallback = translations.ta as Record<string, string>;
-    return dict[key] || fallback[key] || key;
-  };
+    return dict[key] || fallback[key] || String(key);
+  }, [lang]);
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t }}>
@@ -45,3 +43,4 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
 };
 
 export const useLanguage = () => useContext(LanguageContext);
+

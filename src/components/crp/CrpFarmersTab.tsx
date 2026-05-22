@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { HAMLETS } from "@/lib/auth";
 import { formatDate } from "@/lib/mockData";
-import { ArrowLeft, Search, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Search, Plus, Trash2, Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const CrpFarmersTab = () => {
   const { t } = useLanguage();
-  const [farmers, setFarmers] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState<"farmers" | "shg">("farmers");
   const [search, setSearch] = useState("");
   const [hamletFilter, setHamletFilter] = useState("");
@@ -23,11 +24,14 @@ const CrpFarmersTab = () => {
   const [shgGroups, setShgGroups] = useState<any[]>([]);
   const [newShgName, setNewShgName] = useState("");
   const [shgToDelete, setShgToDelete] = useState<any | null>(null);
+  const [farmerToDelete, setFarmerToDelete] = useState(false);
   const perPage = 10;
 
-  useEffect(() => {
-    api.getFarmers().then(setFarmers).catch(() => {});
-  }, []);
+  const { data: farmers = [], refetch: refetchFarmers } = useQuery({
+    queryKey: ["crpFarmers"],
+    queryFn: () => api.getFarmers(),
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     api.getShgGroups().then(setShgGroups).catch(() => {});
@@ -49,6 +53,19 @@ const CrpFarmersTab = () => {
         disease: allDisease.filter((r: any) => (r.userId?._id || r.userId) === f._id),
       });
     } catch { /* show empty */ }
+  };
+
+  const confirmDeleteFarmer = async () => {
+    try {
+      await api.deleteFarmer(selectedFarmer._id);
+      queryClient.invalidateQueries({ queryKey: ["crpFarmers"] });
+      toast.success("✅ விவசாயி நீக்கப்பட்டார்");
+      setSelectedFarmer(null);
+      setFarmerToDelete(false);
+    } catch (err: any) {
+      toast.error(err?.message || "நீக்க முடியவில்லை");
+      setFarmerToDelete(false);
+    }
   };
 
   const handleAddShg = async () => {
@@ -128,9 +145,33 @@ const CrpFarmersTab = () => {
           <ArrowLeft size={16} /> {t("back")}
         </Button>
         <Card className="p-5 bg-card">
-          <h2 className="text-lg font-bold text-foreground">{selectedFarmer.name}</h2>
-          <p className="text-sm text-muted-foreground">{selectedFarmer.hamlet} • {selectedFarmer.shg_name} • {selectedFarmer.phone}</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-foreground">{selectedFarmer.name}</h2>
+              <p className="text-sm text-muted-foreground">{selectedFarmer.hamlet} • {selectedFarmer.shg_name} • {selectedFarmer.phone}</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setFarmerToDelete(true)} className="border-danger text-danger gap-1 shrink-0">
+              <Trash2 size={14} /> நீக்கு
+            </Button>
+          </div>
         </Card>
+
+        {/* Delete confirmation dialog */}
+        {farmerToDelete && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="p-6 bg-card max-w-sm w-full">
+              <h3 className="text-lg font-bold text-foreground mb-3">⚠️ எச்சரிக்கை</h3>
+              <p className="text-sm text-foreground mb-2">
+                <span className="font-bold">"{selectedFarmer.name}"</span> இந்த விவசாயியை நீக்க விரும்புகிறீர்களா?
+              </p>
+              <p className="text-sm text-danger font-medium mb-4">இந்த செயலை மீள்படுத்த முடியாது.</p>
+              <div className="flex gap-2">
+                <Button onClick={() => setFarmerToDelete(false)} variant="outline" className="flex-1">ரத்து செய்</Button>
+                <Button onClick={confirmDeleteFarmer} className="flex-1 bg-danger text-danger-foreground hover:bg-danger/90">நீக்கு</Button>
+              </div>
+            </Card>
+          </div>
+        )}
 
         <Card className="p-4 bg-card">
           <h3 className="text-base font-bold mb-3 text-foreground">{t("birdUpdateHistory")}</h3>

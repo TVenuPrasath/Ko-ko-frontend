@@ -52,11 +52,11 @@ export const api = {
 
   // Market Prices
   getMarketPrice: () => request("GET", "/market", undefined, false),
-  setMarketPrice: (body: { broiler: number; chick: number; egg: number }) => request("POST", "/market", body),
+  setMarketPrice: (body: { broiler: number; chick: number; egg: number }, officer?: any) => request("POST", "/market", body),
 
   // Notifications
   getNotifications: () => request("GET", "/notifications"),
-  createNotification: (body: { type: string; message: string; hamlet?: string }) =>
+  createNotification: (body: { type: string; message: string; hamlet?: string; shg_name?: string; shg_names?: string[] }) =>
     request("POST", "/notifications", body),
   deleteNotification: (id: string) => request("DELETE", `/notifications/${id}`),
 
@@ -65,6 +65,7 @@ export const api = {
   getPendingFarmers: () => request("GET", "/farmers?approved=false"),
   approveFarmer: (id: string) => request("PATCH", `/farmers/${id}/approve`),
   rejectFarmer: (id: string) => request("DELETE", `/farmers/${id}/reject`),
+  deleteFarmer: (id: string) => request("DELETE", `/farmers/${id}`),
 
   // SHG Groups
   getShgGroups: () => request("GET", "/shg", undefined, false),

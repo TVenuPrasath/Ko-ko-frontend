@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { MessageCircle, ShoppingBag, Phone } from "lucide-react";
 import { toast } from "sonner";
 
 const CrpStockTab = () => {
+  const { t } = useLanguage();
   const [stocks, setStocks] = useState<any[]>([]);
   const [refresh, setRefresh] = useState(0);
   const [tab, setTab] = useState<"available" | "sold">("available");
@@ -31,15 +33,15 @@ const CrpStockTab = () => {
 
   const handleMarkSold = async (id: string) => {
     await api.markSold(id);
-    toast.success("விற்பனையாகியது என குறிக்கப்பட்டது ✅");
+    toast.success(`${t("markedAsSold")} ✅`);
     setRefresh((k) => k + 1);
   };
 
   const handleWhatsapp = (s: any) => {
     const msg =
-      `🐔 விற்பனைக்கு தயாராக உள்ளவை\n` +
-      `கறிக்கோழி: ${s.broilers} | குஞ்சு: ${s.chicks} | முட்டை: ${s.eggs}\n` +
-      `தேதி: ${formatDate(s.createdAt)}`;
+      `${t("whatsappShareHeader")}\n` +
+      `${t("broilerChicken")}: ${s.broilers} | ${t("chick")}: ${s.chicks} | ${t("egg")}: ${s.eggs}\n` +
+      `${t("dateLabel")}: ${formatDate(s.createdAt)}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -48,9 +50,9 @@ const CrpStockTab = () => {
     const list = available
       .filter((s) => !hamletFilter || s.hamlet === hamletFilter);
     const lines = list.map((s) =>
-      `• கோழி:${s.broilers} குஞ்சு:${s.chicks} முட்டை:${s.eggs} (${formatDate(s.createdAt)})`
+      `• ${t("broilerChicken")}:${s.broilers} ${t("chick")}:${s.chicks} ${t("egg")}:${s.eggs} (${formatDate(s.createdAt)})`
     ).join("\n");
-    const msg = `🐔 விற்பனைக்கு தயாரான கோழிகள்:\n${lines}\n\nமொத்தம்: கோழி ${totalBroilers} | குஞ்சு ${totalChicks} | முட்டை ${totalEggs}`;
+    const msg = `${t("whatsappShareHeaderAll")}\n${lines}\n\n${t("total")}: ${t("broilerChicken")} ${totalBroilers} | ${t("chick")} ${totalChicks} | ${t("egg")} ${totalEggs}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -59,10 +61,10 @@ const CrpStockTab = () => {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-foreground">விற்பனை இருப்பு</h2>
+        <h2 className="text-lg font-bold text-foreground">{t("saleStock")}</h2>
         {available.length > 0 && (
           <Button size="sm" variant="outline" onClick={handleShareAll} className="gap-1 text-success border-success text-xs">
-            <MessageCircle size={13} /> அனைத்தும் Share
+            <MessageCircle size={13} /> {t("shareAll")}
           </Button>
         )}
       </div>
@@ -70,12 +72,12 @@ const CrpStockTab = () => {
       {/* Summary totals */}
       {available.length > 0 && (
         <Card className="p-4 bg-primary/5 border-primary/30 border-2">
-          <p className="text-xs font-bold text-primary mb-2">மொத்த கிடைக்கும் இருப்பு</p>
+          <p className="text-xs font-bold text-primary mb-2">{t("totalAvailableStock")}</p>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: "கறிக்கோழி", value: totalBroilers },
-              { label: "குஞ்சு",    value: totalChicks },
-              { label: "முட்டை",   value: totalEggs },
+              { label: t("broilerChicken"), value: totalBroilers },
+              { label: t("chick"),    value: totalChicks },
+              { label: t("egg"),   value: totalEggs },
             ].map(({ label, value }) => (
               <div key={label} className="bg-card rounded-lg p-2 text-center border border-border">
                 <p className="text-xl font-bold text-foreground">{value}</p>
@@ -83,7 +85,9 @@ const CrpStockTab = () => {
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-2">{available.length} விவசாயிகளிடம் இருந்து</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            {t("fromFarmersCount").replace("{count}", available.length.toString())}
+          </p>
         </Card>
       )}
 
@@ -93,7 +97,7 @@ const CrpStockTab = () => {
         onChange={(e) => setHamletFilter(e.target.value)}
         className="border border-input rounded-md px-3 py-2 text-sm bg-card text-foreground"
       >
-        <option value="">அனைத்து ஊர்களும்</option>
+        <option value="">{t("allHamlets")}</option>
         {HAMLETS.map((h) => <option key={h} value={h}>{h}</option>)}
       </select>
 
@@ -105,7 +109,7 @@ const CrpStockTab = () => {
             tab === "available" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"
           }`}
         >
-          கிடைக்கும் ({available.length})
+          {t("available")} ({available.length})
         </button>
         <button
           onClick={() => setTab("sold")}
@@ -113,14 +117,14 @@ const CrpStockTab = () => {
             tab === "sold" ? "bg-success text-success-foreground border-success" : "border-border text-muted-foreground"
           }`}
         >
-          விற்பனையானது ({sold.length})
+          {t("sold")} ({sold.length})
         </button>
       </div>
 
       {/* Stock cards */}
       {filtered.length === 0 ? (
         <Card className="p-6 text-center text-muted-foreground">
-          <p className="text-sm">{tab === "available" ? "விற்பனைக்கு தயாரான இருப்பு இல்லை" : "விற்பனை வரலாறு இல்லை"}</p>
+          <p className="text-sm">{tab === "available" ? t("noSaleStock") : t("noSaleHistory")}</p>
         </Card>
       ) : (
         filtered.map((s) => (
@@ -135,20 +139,20 @@ const CrpStockTab = () => {
                     <Phone size={11} /> {s.phone}
                   </a>
                 )}
-                <p className="text-xs text-muted-foreground mt-0.5">பதிவு: {formatDate(s.createdAt)}</p>
-                {s.soldAt && <p className="text-xs text-muted-foreground">விற்பனை: {formatDate(s.soldAt)}</p>}
+                <p className="text-xs text-muted-foreground mt-0.5">{t("registration")}: {formatDate(s.createdAt)}</p>
+                {s.soldAt && <p className="text-xs text-muted-foreground">{t("sold")}: {formatDate(s.soldAt)}</p>}
               </div>
               <Badge className={s.status === "sold" ? "bg-success text-success-foreground" : "bg-primary text-primary-foreground"}>
-                {s.status === "sold" ? "✅ விற்பனையானது" : "🟢 கிடைக்கும்"}
+                {s.status === "sold" ? `✅ ${t("soldBadge")}` : `🟢 ${t("availableBadge")}`}
               </Badge>
             </div>
 
             {/* Stock counts */}
             <div className="grid grid-cols-3 gap-2 mb-3">
               {[
-                { label: "கறிக்கோழி", value: s.broilers, color: "text-orange-600" },
-                { label: "குஞ்சு",    value: s.chicks,   color: "text-yellow-600" },
-                { label: "முட்டை",   value: s.eggs,     color: "text-blue-600" },
+                { label: t("broilerChicken"), value: s.broilers, color: "text-orange-600" },
+                { label: t("chick"),    value: s.chicks,   color: "text-yellow-600" },
+                { label: t("egg"),   value: s.eggs,     color: "text-blue-600" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-muted/40 rounded-lg p-2 text-center">
                   <p className={`text-xl font-bold ${color}`}>{value}</p>
@@ -159,14 +163,14 @@ const CrpStockTab = () => {
 
             {/* Total */}
             <p className="text-xs text-muted-foreground text-right mb-3">
-              மொத்தம்: <span className="font-bold text-foreground">{(s.broilers || 0) + (s.chicks || 0) + (s.eggs || 0)}</span>
+              {t("total")}: <span className="font-bold text-foreground">{(s.broilers || 0) + (s.chicks || 0) + (s.eggs || 0)}</span>
             </p>
 
             {/* Actions */}
             {s.status === "available" && (
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => handleMarkSold(s._id)} className="flex-1 bg-success text-success-foreground text-xs gap-1">
-                  <ShoppingBag size={13} /> விற்பனையானது
+                  <ShoppingBag size={13} /> {t("sold")}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => handleWhatsapp(s)} className="flex-1 gap-1 text-success border-success text-xs">
                   <MessageCircle size={13} /> WhatsApp

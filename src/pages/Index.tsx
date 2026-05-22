@@ -7,12 +7,14 @@ import OtpScreen from "@/components/auth/OtpScreen";
 import Dashboard from "@/components/dashboard/Dashboard";
 import CrpDashboard from "@/components/crp/CrpDashboard";
 import { toast } from "sonner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const INACTIVITY_MS = 30 * 60 * 1000; // 30 minutes
 
 type Screen = "choose" | "register" | "otp" | "app";
 
 const Index = () => {
+  const { t } = useLanguage();
   const [user, setUserState] = useState<User | null>(null);
   const [screen, setScreen] = useState<Screen>("choose");
   const [pendingPhone, setPendingPhone] = useState("");
@@ -32,7 +34,7 @@ const Index = () => {
     if (screen !== "app") return;
     const reset = () => {
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-      inactivityTimer.current = setTimeout(() => handleLogout("⏳ உங்கள் கணக்கு செயல்படவில்லை. மீண்டும் உள்நுழையவும்."), INACTIVITY_MS);
+      inactivityTimer.current = setTimeout(() => handleLogout(t("sessionExpiredToast")), INACTIVITY_MS);
     };
     const events = ["mousemove", "keydown", "touchstart", "click", "scroll"];
     events.forEach((e) => window.addEventListener(e, reset));
@@ -41,7 +43,7 @@ const Index = () => {
       events.forEach((e) => window.removeEventListener(e, reset));
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     };
-  }, [screen, handleLogout]);
+  }, [screen, handleLogout, t]);
 
   useEffect(() => {
     const stored = getUser();
@@ -56,7 +58,7 @@ const Index = () => {
       setIsRegistering(false);
       setScreen("otp");
     } catch (err: any) {
-      toast.error(err?.message || "இந்த எண் பதிவு செய்யப்படவில்லை");
+      toast.error(err?.message || t("phoneNotRegistered"));
     }
   };
 
@@ -76,7 +78,7 @@ const Index = () => {
       setIsRegistering(true);
       setScreen("otp");
     } catch (err: any) {
-      toast.error(err?.message || "பதிவு தோல்வியடைந்தது");
+      toast.error(err?.message || t("registrationFailed"));
     }
   };
 

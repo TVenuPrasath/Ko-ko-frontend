@@ -3,6 +3,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 interface ChooseActionScreenProps {
   onRegister: () => void;
@@ -10,25 +11,38 @@ interface ChooseActionScreenProps {
 }
 
 const ChooseActionScreen = ({ onRegister, onLogin }: ChooseActionScreenProps) => {
-  const { t } = useLanguage();
+  const { t, lang, setLang } = useLanguage();
   const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (phone.length !== 10) return;
-    onLogin(phone);
+    setLoading(true);
+    await onLogin(phone);
+    setLoading(false);
   };
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "linear-gradient(160deg, #f1f8e9 0%, #e8f5e9 50%, #f9fbe7 100%)" }}>
       {/* Hero banner */}
-      <div className="agri-header-gradient px-6 pt-14 pb-10 flex flex-col items-center text-center">
-        <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center text-4xl mb-4 shadow-lg">
-          🐔
+      <div className="relative agri-header-gradient px-6 pt-14 pb-10 flex flex-col items-center text-center">
+        {/* Language Toggle */}
+        <div className="absolute top-4 right-4 z-10">
+          <button
+            onClick={() => setLang(lang === "ta" ? "en" : "ta")}
+            className="text-xs font-bold border border-white/30 rounded-lg px-2.5 py-1 text-white/80 hover:text-white hover:border-white/60 bg-white/10"
+          >
+            {lang === "ta" ? "EN" : "தமிழ்"}
+          </button>
+        </div>
+
+        <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center mb-4 shadow-lg overflow-hidden">
+          <img src="/logo.png" alt="Logo" className="w-full h-full object-cover rounded-full" />
         </div>
         <h1 className="text-2xl font-bold text-white leading-tight tracking-wide">{t("appNameTamil")}</h1>
         <p className="text-sm text-white/80 mt-1.5 font-medium">{t("appTagline")}</p>
         <div className="flex items-center gap-2 mt-3 text-white/60 text-xs">
-          <span>🌿</span><span>கோணாங்கிப்பட்டி கோழி செயலி</span><span>🌿</span>
+          <span>🌿</span><span>{t("appTagline")}</span><span>🌿</span>
         </div>
       </div>
 
@@ -42,7 +56,7 @@ const ChooseActionScreen = ({ onRegister, onLogin }: ChooseActionScreenProps) =>
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl shrink-0">📝</div>
           <div className="text-left flex-1">
             <p className="text-base font-bold text-foreground">{t("newRegistration")}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">புதிய விவசாயி பதிவு செய்யவும்</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("newRegistrationSub")}</p>
           </div>
           <span className="text-primary text-lg">›</span>
         </button>
@@ -50,7 +64,7 @@ const ChooseActionScreen = ({ onRegister, onLogin }: ChooseActionScreenProps) =>
         {/* Divider */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground font-medium px-2">அல்லது உள்நுழையவும்</span>
+          <span className="text-xs text-muted-foreground font-medium px-2">{t("orLogin")}</span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
@@ -75,16 +89,16 @@ const ChooseActionScreen = ({ onRegister, onLogin }: ChooseActionScreenProps) =>
 
           <Button
             onClick={handleLogin}
-            disabled={phone.length !== 10}
+            disabled={phone.length !== 10 || loading}
             className="tap-target w-full text-base font-bold rounded-xl shadow-sm disabled:opacity-40"
             style={{ background: phone.length === 10 ? "linear-gradient(135deg, #2E7D32, #4CAF50)" : undefined }}
           >
-            {t("login")} →
+            {loading ? <Loader2 className="animate-spin" size={20} /> : t("login") + " →"}
           </Button>
         </div>
 
         {/* Footer note */}
-        <p className="text-center text-xs text-muted-foreground mt-2">🔒 உங்கள் தரவு பாதுகாப்பாக உள்ளது</p>
+        <p className="text-center text-xs text-muted-foreground mt-2">{t("dataSecured")}</p>
       </div>
     </div>
   );

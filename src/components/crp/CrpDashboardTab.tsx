@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { HAMLETS } from "@/lib/auth";
 import { FileBarChart2, MessageSquare, Users, Activity, ChevronDown, ChevronUp, Bird, ClipboardList, Bug } from "lucide-react";
 import { api } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 
 interface CrpDashboardTabProps {
   onNavigate?: (tab: "reports" | "alerts" | "services" | "approve") => void;
@@ -21,12 +22,7 @@ function formatDateTime(dateStr: string) {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-const TYPE_ICON: Record<string, any> = {
-  bird: Bird,
-  service: ClipboardList,
-  disease: Bug,
-};
-
+const TYPE_ICON: Record<string, any> = { bird: Bird, service: ClipboardList, disease: Bug };
 const TYPE_COLOR: Record<string, string> = {
   bird: "bg-primary/10 text-primary",
   service: "bg-warning/10 text-warning",
@@ -35,40 +31,54 @@ const TYPE_COLOR: Record<string, string> = {
 
 const CrpDashboardTab = ({ onNavigate }: CrpDashboardTabProps) => {
   const { t } = useLanguage();
-  const [farmers, setFarmers] = useState<any[]>([]);
-  const [birdUpdates, setBirdUpdates] = useState<any[]>([]);
-  const [activityFeed, setActivityFeed] = useState<any[]>([]);
   const [showWeeklyDetail, setShowWeeklyDetail] = useState(false);
   const [weeklyView, setWeeklyView] = useState<"updated" | "not_updated">("not_updated");
   const [showAllActivity, setShowAllActivity] = useState(false);
+  const [activityFeed, setActivityFeed] = useState<any[]>([]);
+
+  const { data: farmers = [] } = useQuery({ queryKey: ["crpFarmers"], queryFn: () => api.getFarmers(), staleTime: 60_000 });
+  const { data: birdUpdates = [] } = useQuery({ queryKey: ["allBirdUpdates"], queryFn: () => api.getAllBirdUpdates(), staleTime: 60_000 });
+  const { data: rawActivity = [] } = useQuery({
+    queryKey: ["activity"],
+    queryFn: () => api.getActivity(),
+    staleTime: 30_000,
+  });
+
+  // Filter seen activity into local state on first load
+  useEffect(() => {
+    if (rawActivity.length > 0) {
+      const seen: string[] = JSON.parse(localStorage.getItem("seen_activity") || "[]");
+      setActivityFeed((rawActivity as any[]).filter((a: any) => !seen.includes(a._id)));
+    }
+  }, [rawActivity]);
 
   const markAsRead = (id: string) => {
+    const seen: string[] = JSON.parse(localStorage.getItem("seen_activity") || "[]");
+    if (!seen.includes(id)) seen.push(id);
+    localStorage.setItem("seen_activity", JSON.stringify(seen));
     setActivityFeed((prev) => prev.filter((a) => a._id !== id));
   };
 
   const markAllAsRead = () => {
+    const ids = activityFeed.map((a) => a._id);
+    const seen: string[] = JSON.parse(localStorage.getItem("seen_activity") || "[]");
+    localStorage.setItem("seen_activity", JSON.stringify([...new Set([...seen, ...ids])]));
     setActivityFeed([]);
   };
-
-  useEffect(() => {
-    api.getFarmers().then(setFarmers).catch(() => {});
-    api.getAllBirdUpdates().then(setBirdUpdates).catch(() => {});
-    api.getActivity().then(setActivityFeed).catch(() => {});
-  }, []);
 
   const thisWeek = getThisWeek();
   const totalFarmers = farmers.length;
   const totalHamlets = HAMLETS.length;
 
   const updatedUserIds = new Set(
-    birdUpdates.filter((u) => u.weekDate === thisWeek).map((u) => u.userId?._id || u.userId)
+    birdUpdates.filter((u: any) => u.weekDate === thisWeek).map((u: any) => u.userId?._id || u.userId)
   );
   const totalUpdated = updatedUserIds.size;
   const totalNotUpdated = Math.max(0, totalFarmers - totalUpdated);
 
   const hamletUpdateStats = HAMLETS.map((hamlet) => {
-    const hf = farmers.filter((f) => f.hamlet === hamlet);
-    const updated = hf.filter((f) => updatedUserIds.has(f._id)).length;
+    const hf = farmers.filter((f: any) => f.hamlet === hamlet);
+    const updated = hf.filter((f: any) => updatedUserIds.has(f._id)).length;
     return { hamlet, updated, total: hf.length, notUpdated: hf.length - updated };
   }).filter((h) => h.total > 0);
 
@@ -135,7 +145,7 @@ const CrpDashboardTab = ({ onNavigate }: CrpDashboardTabProps) => {
               {hamletUpdateStats.map((h) => {
                 const count = weeklyView === "not_updated" ? h.notUpdated : h.updated;
                 if (count === 0) return null;
-                const relevantFarmers = farmers.filter((f) => f.hamlet === h.hamlet && (weeklyView === "updated" ? updatedUserIds.has(f._id) : !updatedUserIds.has(f._id)));
+                const relevantFarmers = farmers.filter((f: any) => f.hamlet === h.hamlet && (weeklyView === "updated" ? updatedUserIds.has(f._id) : !updatedUserIds.has(f._id)));
                 return (
                   <div key={h.hamlet} className="border border-border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
@@ -144,7 +154,7 @@ const CrpDashboardTab = ({ onNavigate }: CrpDashboardTabProps) => {
                         {count}/{h.total}
                       </Badge>
                     </div>
-                    {relevantFarmers.map((f) => (
+                    {relevantFarmers.map((f: any) => (
                       <div key={f._id} className="flex items-center justify-between py-1 border-t border-border/30">
                         <span className="text-xs text-foreground">{f.name}</span>
                         <span className="text-xs text-muted-foreground">{f.phone}</span>

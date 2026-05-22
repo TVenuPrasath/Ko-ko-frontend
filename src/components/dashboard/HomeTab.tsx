@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { User } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import { ClipboardList, Bug, Bird, AlertTriangle, History, IndianRupee, ChevronRight } from "lucide-react";
 
 type NavTab = "weekly" | "disease" | "notifications" | "history" | "prices" | "loan";
@@ -12,51 +12,45 @@ interface HomeTabProps {
 }
 
 const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
-  const { t } = useLanguage();
-  const [weekDone, setWeekDone] = useState(false);
-  const [marketPrice, setMarketPrice] = useState<any>(null);
-  const [upcomingVax, setUpcomingVax] = useState<any[]>([]);
+  const { t, lang } = useLanguage();
 
-  useEffect(() => {
-    api.checkWeekSubmitted().then((r) => setWeekDone(r.submitted)).catch(() => {});
-    api.getMarketPrice().then(setMarketPrice).catch(() => {});
-    api.getVaccinations().then((records) => {
-      const today = new Date();
-      const upcoming = records
-        .filter((r: any) => r.nextDueDate && new Date(r.nextDueDate) >= today)
-        .sort((a: any, b: any) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime())
-        .slice(0, 2);
-      setUpcomingVax(upcoming);
-    }).catch(() => {});
-  }, []);
+  const { data: weekData } = useQuery({ queryKey: ["checkWeek"], queryFn: () => api.checkWeekSubmitted(), staleTime: 60_000 });
+  const { data: marketPrice } = useQuery({ queryKey: ["marketPrice"], queryFn: () => api.getMarketPrice(), staleTime: 60_000 });
+  const { data: vaxRecords = [] } = useQuery({ queryKey: ["vaccinations"], queryFn: () => api.getVaccinations(), staleTime: 60_000 });
+
+  const weekDone = weekData?.submitted ?? false;
+  const today = new Date();
+  const upcomingVax = vaxRecords
+    .filter((r: any) => r.nextDueDate && new Date(r.nextDueDate) >= today)
+    .sort((a: any, b: any) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime())
+    .slice(0, 2);
 
   const cards: { key: NavTab; titleTa: string; titleEn: string; icon: typeof Bird; color: string; bg: string }[] = [
     { key: "weekly",  titleTa: t("birdsUpdate"),        titleEn: "(Birds update)",        icon: Bird,          color: "text-primary",    bg: "bg-primary/10" },
     { key: "loan",    titleTa: t("servicesNeededTitle"), titleEn: "(Services & Loan)",     icon: ClipboardList, color: "text-[#8D6E63]",  bg: "bg-[#8D6E63]/10" },
     { key: "disease", titleTa: t("reportDisease"),       titleEn: "(Report diseases)",     icon: Bug,           color: "text-danger",     bg: "bg-danger/10" },
-    { key: "history", titleTa: "தடுப்பூசி வரலாறு",       titleEn: "(Vaccination History)", icon: History,       color: "text-success",    bg: "bg-success/10" },
-    { key: "prices",  titleTa: "சந்தை விலை",             titleEn: "(Market Prices)",       icon: IndianRupee,   color: "text-[#F9A825]",  bg: "bg-[#F9A825]/10" },
+    { key: "history", titleTa: t("vaccinationHistory"),  titleEn: "(Vaccination History)", icon: History,       color: "text-success",    bg: "bg-success/10" },
+    { key: "prices",  titleTa: t("marketPrice"),         titleEn: "(Market Prices)",       icon: IndianRupee,   color: "text-[#F9A825]",  bg: "bg-[#F9A825]/10" },
   ];
 
   const typeLabel: Record<string, string> = {
-    white_diarrhea: "வெள்ளை கழிச்சல் தடுப்பூசி",
-    smallpox: "அம்மை தடுப்பூசி",
-    deworming: "குடற்புழு நீக்கம்",
+    white_diarrhea: lang === "en" ? "Ranikhet (RD)" : "வெள்ளை கழிச்சல் தடுப்பூசி",
+    smallpox: lang === "en" ? "Smallpox" : "அம்மை தடுப்பூசி",
+    deworming: lang === "en" ? "Deworming" : "குடற்புழு நீக்கம்",
   };
   const formatShortDate = (d: string) => {
     const dt = new Date(d);
     return `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth()+1).padStart(2,"0")}/${dt.getFullYear()}`;
   };
-  const vaxAlertParts = upcomingVax.map((r) => `💉 ${typeLabel[r.type] || r.type}: ${formatShortDate(r.nextDueDate)}`);
+  const vaxAlertParts = upcomingVax.map((r: any) => `💉 ${typeLabel[r.type] || r.type}: ${formatShortDate(r.nextDueDate)}`);
   const tickerText = [
-    weekDone ? `📢 இந்த வாரம் நல்ல வளர்ச்சி` : `⚠️ வாராந்திர புதுப்பிப்பை சமர்ப்பிக்கவும்`,
-    `சந்தை விலை: ₹${marketPrice?.broiler ?? "—"}/kg`,
+    weekDone ? t("weeklyUpdateDoneMsg") : t("weeklyUpdatePendingMsg"),
+    `${t("marketPrice")}: ₹${marketPrice?.broiler ?? "—"}/kg`,
     ...vaxAlertParts,
   ].join(" • ");
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Welcome card */}
       <div className="rounded-2xl p-5 text-white shadow-md" style={{ background: "linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)" }}>
         <div className="flex items-start justify-between">
           <div>
@@ -65,17 +59,16 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
           </div>
           <div className="text-3xl">🌾</div>
         </div>
-        <div className={`mt-3 bg-white/20 rounded-xl px-3 py-2 flex items-center gap-2`}>
+        <div className="mt-3 bg-white/20 rounded-xl px-3 py-2 flex items-center gap-2">
           <span className="text-base">{weekDone ? "✅" : "⏰"}</span>
           <p className="text-xs font-semibold">
-            {weekDone ? "இந்த வாரம் புதுப்பிப்பு சமர்ப்பிக்கப்பட்டது" : "இந்த வாரம் புதுப்பிப்பு சமர்ப்பிக்கவில்லை"}
+            {weekDone ? t("weeklyUpdateSubmitted") : t("weeklyUpdateNotSubmitted")}
           </p>
         </div>
       </div>
 
       <p className="text-xs italic text-muted-foreground text-center">{t("dashboardEn")}</p>
 
-      {/* Action cards */}
       <div className="flex flex-col gap-3">
         {cards.map((c, i) => (
           <button
@@ -91,14 +84,13 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
               <p className="text-xs text-muted-foreground mt-0.5">{c.titleEn}</p>
             </div>
             {c.key === "weekly" && !weekDone && (
-              <span className="text-[10px] bg-warning/20 text-warning font-bold px-2 py-1 rounded-lg shrink-0">புதுப்பி</span>
+              <span className="text-[10px] bg-warning/20 text-warning font-bold px-2 py-1 rounded-lg shrink-0">{t("pending")}</span>
             )}
             <ChevronRight size={16} className="text-muted-foreground shrink-0" />
           </button>
         ))}
       </div>
 
-      {/* Alert ticker */}
       <div className="rounded-2xl p-4 border-2 border-warning/30" style={{ background: "linear-gradient(135deg, #fffde7, #fff8e1)" }}>
         <div className="flex items-center gap-2 mb-2">
           <AlertTriangle className="text-warning shrink-0" size={18} />
@@ -106,9 +98,7 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
           <span className="text-xs text-muted-foreground italic ml-auto">{t("alertMessageDisplay")}</span>
         </div>
         <div className="overflow-hidden">
-          <p className="text-sm text-foreground whitespace-nowrap animate-marquee">
-            {tickerText}
-          </p>
+          <p className="text-sm text-foreground whitespace-nowrap animate-marquee">{tickerText}</p>
         </div>
       </div>
     </div>

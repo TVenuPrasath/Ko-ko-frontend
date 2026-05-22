@@ -15,7 +15,7 @@ interface OtpScreenProps {
 }
 
 const OtpScreen = ({ phone, devOtp, onVerified, onBack }: OtpScreenProps) => {
-  const { t } = useLanguage();
+  const { t, lang, setLang } = useLanguage();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
@@ -51,10 +51,10 @@ const OtpScreen = ({ phone, devOtp, onVerified, onBack }: OtpScreenProps) => {
     } catch (err: any) {
       setLoading(false);
       if (err?.message === "pending") {
-        toast("⏳ உங்கள் பதிவு CRP அனுமதிக்காக காத்திருக்கிறது");
+        toast(t("pendingCrpApprovalToast"));
         onBack();
       } else {
-        toast.error(err?.message || "தவறான OTP. மீண்டும் முயற்சிக்கவும்.");
+        toast.error(err?.message || t("invalidOtpToast"));
         setOtp(["", "", "", "", "", ""]);
         refs.current[0]?.focus();
       }
@@ -66,9 +66,9 @@ const OtpScreen = ({ phone, devOtp, onVerified, onBack }: OtpScreenProps) => {
     try {
       await api.sendOtp(phone);
       setResendTimer(30);
-      toast("OTP மீண்டும் அனுப்பப்பட்டது");
+      toast(t("otpResentToast"));
     } catch {
-      toast.error("மீண்டும் அனுப்ப முடியவில்லை");
+      toast.error(t("otpResendFailedToast"));
     }
   };
 
@@ -77,10 +77,18 @@ const OtpScreen = ({ phone, devOtp, onVerified, onBack }: OtpScreenProps) => {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "linear-gradient(160deg, #f1f8e9 0%, #e8f5e9 50%, #f9fbe7 100%)" }}>
       {/* Header strip */}
-      <div className="agri-header-gradient px-5 pt-12 pb-8 flex flex-col">
-        <button onClick={onBack} className="flex items-center gap-1.5 text-white/80 hover:text-white mb-5 w-fit">
-          <ArrowLeft size={18} /> <span className="text-sm font-medium">{t("back")}</span>
-        </button>
+      <div className="relative agri-header-gradient px-5 pt-12 pb-8 flex flex-col">
+        <div className="flex justify-between items-start">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-white/80 hover:text-white mb-5 w-fit">
+            <ArrowLeft size={18} /> <span className="text-sm font-medium">{t("back")}</span>
+          </button>
+          <button
+            onClick={() => setLang(lang === "ta" ? "en" : "ta")}
+            className="text-xs font-bold border border-white/30 rounded-lg px-2.5 py-1 text-white/80 hover:text-white hover:border-white/60 bg-white/10"
+          >
+            {lang === "ta" ? "EN" : "தமிழ்"}
+          </button>
+        </div>
         <h1 className="text-xl font-bold text-white">{t("otpVerification")}</h1>
         <p className="text-sm text-white/75 mt-1">{t("otpSentTo")} <span className="font-bold text-white">{phone}</span></p>
       </div>
@@ -125,7 +133,7 @@ const OtpScreen = ({ phone, devOtp, onVerified, onBack }: OtpScreenProps) => {
 
           <div className="text-center">
             {resendTimer > 0 ? (
-              <p className="text-xs text-muted-foreground">மீண்டும் அனுப்ப காத்திருக்கவும்... <span className="font-bold text-primary">{resendTimer}s</span></p>
+              <p className="text-xs text-muted-foreground">{t("pleaseWaitResend")} <span className="font-bold text-primary">{resendTimer}s</span></p>
             ) : (
               <button onClick={handleResend} className="text-primary font-semibold text-sm underline underline-offset-2">
                 {t("resendOtp")}

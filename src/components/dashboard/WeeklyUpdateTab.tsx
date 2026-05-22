@@ -5,9 +5,11 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/mockData";
 import { Minus, Plus, Loader2, Bird, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const WeeklyUpdateTab = () => {
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
 
   const [chicks, setChicks] = useState(0);
   const [growers, setGrowers] = useState(0);
@@ -17,47 +19,33 @@ const WeeklyUpdateTab = () => {
   const [saleEggs, setSaleEggs] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saleLoading, setSaleLoading] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [birdResetKey, setBirdResetKey] = useState(0);
   const [saleResetKey, setSaleResetKey] = useState(0);
 
-  const saleTotal = saleBroiler + saleChicks + saleEggs;
-  const [pastUpdates, setPastUpdates] = useState<any[]>([]);
-
-  useEffect(() => {
-    api.getBirdUpdates().then(setPastUpdates).catch(() => {});
-  }, [refreshKey]);
+  const { data: pastUpdates = [] } = useQuery({
+    queryKey: ["birdUpdates"],
+    queryFn: () => api.getBirdUpdates(),
+    staleTime: 30_000,
+  });
 
   const total = chicks + growers + layers;
+  const saleTotal = saleBroiler + saleChicks + saleEggs;
 
   const Counter = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => {
     const [inputVal, setInputVal] = useState(String(value));
     useEffect(() => { setInputVal(String(value)); }, [value]);
     return (
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => onChange(Math.max(0, value - 1))}
-          className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center active:bg-muted/70 border border-border"
-        >
+        <button onClick={() => onChange(Math.max(0, value - 1))} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center active:bg-muted/70 border border-border">
           <Minus size={15} />
         </button>
         <input
-          type="number"
-          min={0}
-          value={inputVal}
+          type="number" min={0} value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
-          onBlur={() => {
-            const v = parseInt(inputVal);
-            const safe = isNaN(v) || v < 0 ? 0 : v;
-            onChange(safe);
-            setInputVal(String(safe));
-          }}
+          onBlur={() => { const v = parseInt(inputVal); const safe = isNaN(v) || v < 0 ? 0 : v; onChange(safe); setInputVal(String(safe)); }}
           className="w-14 text-center text-lg font-bold text-foreground border-2 border-input rounded-xl py-1.5 bg-white focus:outline-none focus:border-primary"
         />
-        <button
-          onClick={() => onChange(value + 1)}
-          className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:opacity-80 shadow-sm"
-        >
+        <button onClick={() => onChange(value + 1)} className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:opacity-80 shadow-sm">
           <Plus size={15} />
         </button>
       </div>
@@ -78,7 +66,8 @@ const WeeklyUpdateTab = () => {
       toast.success(t("updateSubmitted") + " ✅");
       setChicks(0); setGrowers(0); setLayers(0);
       setBirdResetKey((k) => k + 1);
-      setRefreshKey((k) => k + 1);
+      queryClient.invalidateQueries({ queryKey: ["birdUpdates"] });
+      queryClient.invalidateQueries({ queryKey: ["checkWeek"] });
     } catch (err: any) {
       toast.error(err.message || "Submit failed");
     } finally {
@@ -101,8 +90,7 @@ const WeeklyUpdateTab = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5" key={refreshKey}>
-
+    <div className="flex flex-col gap-5">
       {/* Bird count card */}
       <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden" key={birdResetKey}>
         <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #2E7D32, #4CAF50)" }}>
@@ -126,7 +114,7 @@ const WeeklyUpdateTab = () => {
             className="tap-target w-full text-base font-bold mt-4 rounded-xl shadow-sm disabled:opacity-40"
             style={{ background: total > 0 ? "linear-gradient(135deg, #2E7D32, #4CAF50)" : undefined }}
           >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : "கோழி எண்ணிக்கை சேமி ✓"}
+            {loading ? <Loader2 className="animate-spin" size={20} /> : t("saveBirdCount")}
           </Button>
         </div>
       </div>
@@ -153,7 +141,7 @@ const WeeklyUpdateTab = () => {
             disabled={saleTotal === 0 || saleLoading}
             className="tap-target w-full text-base font-bold mt-4 rounded-xl shadow-sm disabled:opacity-40 bg-success text-success-foreground hover:bg-success/90"
           >
-            {saleLoading ? <Loader2 className="animate-spin" size={20} /> : "விற்பனை தகவல் சேமி ✓"}
+            {saleLoading ? <Loader2 className="animate-spin" size={20} /> : t("saveSaleInfo")}
           </Button>
         </div>
       </div>
@@ -176,7 +164,7 @@ const WeeklyUpdateTab = () => {
                 </tr>
               </thead>
               <tbody>
-                {pastUpdates.map((u, i) => (
+                {pastUpdates.map((u: any, i: number) => (
                   <tr key={u._id} className={`border-b border-border/40 ${i % 2 === 0 ? "" : "bg-muted/10"}`}>
                     <td className="py-2.5 px-4 text-foreground font-medium">{formatDate(u.weekDate)}</td>
                     <td className="text-center py-2.5 px-2 text-foreground">{u.chicks}</td>

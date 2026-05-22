@@ -78,10 +78,10 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-border/50 px-4 py-3 flex items-center justify-between" style={{ background: "linear-gradient(135deg, #2E7D32, #388E3C)" }}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-lg">🐔</div>
+          <img src="/logo.png" alt="Logo" className="w-8 h-8 rounded-lg" />
           <div>
-            <h1 className="text-sm font-bold text-white leading-tight">கோ-கோ செயலி</h1>
-            <p className="text-[10px] text-white/70">கோணாங்கிப்பட்டி கோழி செயலி</p>
+            <h1 className="text-sm font-bold text-white leading-tight">{t("appNameTamil")}</h1>
+            <p className="text-[10px] text-white/70">{t("appTagline")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
       </main>
 
       {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-border/40" style={{ background: "rgba(255,255,255,0.97)", backdropFilter: "blur(8px)" }}>
+      <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-border/40" style={{ background: "rgba(232,245,233,0.96)", backdropFilter: "blur(8px)" }}>
         <div className="max-w-[430px] mx-auto flex">
           {tabs.map(({ key, icon: Icon, label }) => (
             <button

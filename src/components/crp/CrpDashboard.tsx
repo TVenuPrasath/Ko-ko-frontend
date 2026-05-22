@@ -32,7 +32,7 @@ const CrpDashboard = ({ user, onLogout }: CrpDashboardProps) => {
     { key: "dashboard", icon: LayoutDashboard, label: t("dashboard") },
     { key: "farmers",   icon: Users,           label: t("farmers") },
     { key: "services",  icon: ClipboardList,   label: t("services") },
-    { key: "stock",     icon: ShoppingBag,  label: "இருப்பு" },
+    { key: "stock",     icon: ShoppingBag,  label: t("stock") },
     { key: "alerts",    icon: Bell,         label: t("alerts") },
     { key: "reports",   icon: FileText,     label: t("reports") },
   ];
@@ -55,20 +55,23 @@ const CrpDashboard = ({ user, onLogout }: CrpDashboardProps) => {
 
   return (
     <div className="max-w-[430px] mx-auto min-h-screen bg-card shadow-lg flex flex-col">
-      <header className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="text-base font-bold text-foreground leading-tight">கோ-கோ செயலி</h1>
-          <p className="text-xs text-muted-foreground">CRP - {user.name}</p>
+      <header className="sticky top-0 z-10 border-b border-border px-4 py-3 flex items-center justify-between" style={{ background: "linear-gradient(135deg, #2E7D32, #388E3C)" }}>
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Logo" className="w-8 h-8 rounded-lg bg-white/10" />
+          <div>
+            <h1 className="text-base font-bold text-white leading-tight">{t("appNameTamil")}</h1>
+            <p className="text-xs text-white/75">CRP - {user.name}</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setLang(lang === "ta" ? "en" : "ta")}
-            className="text-xs font-bold border border-border rounded-md px-2 py-1 text-muted-foreground hover:text-foreground"
+            className="text-xs font-bold border border-white/30 rounded-lg px-2.5 py-1 text-white/80 hover:text-white hover:border-white/60 bg-white/10"
           >
             {lang === "ta" ? "EN" : "தமிழ்"}
           </button>
-          <button onClick={handleLogout} className="text-muted-foreground p-1">
-            <LogOut size={20} />
+          <button onClick={handleLogout} className="text-white/70 hover:text-white p-1.5 rounded-lg hover:bg-white/10">
+            <LogOut size={18} />
           </button>
         </div>
       </header>
