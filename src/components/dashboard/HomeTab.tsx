@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import {
   ClipboardList, Bug, Bird, AlertTriangle, History,
-  IndianRupee, ChevronRight, Syringe, TrendingUp, Lightbulb, Bell,
+  IndianRupee, ChevronRight, Syringe,
 } from "lucide-react";
 
 type NavTab = "weekly" | "disease" | "notifications" | "history" | "prices" | "loan";
@@ -14,29 +14,39 @@ interface HomeTabProps {
   onNavigate?: (tab: NavTab) => void;
 }
 
-function fmt(d: string) {
+function fmt(d: string | Date) {
   const dt = new Date(d);
   return `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}/${dt.getFullYear()}`;
 }
 
-const NOTIF_CONFIG: Record<string, { icon: typeof Bell; iconColor: string; bg: string; border: string; labelEn: string; labelTa: string }> = {
-  disease:              { icon: AlertTriangle, iconColor: "text-danger",  bg: "bg-danger/8",  border: "border-danger/30",  labelEn: "Disease Alert",         labelTa: "நோய் எச்சரிக்கை" },
-  market:               { icon: TrendingUp,    iconColor: "text-success", bg: "bg-success/8", border: "border-success/30", labelEn: "Market Price",           labelTa: "சந்தை விலை" },
-  tip:                  { icon: Lightbulb,     iconColor: "text-primary", bg: "bg-primary/8", border: "border-primary/30", labelEn: "Farming Tip",            labelTa: "வேளாண் குறிப்பு" },
-  vaccination_reminder: { icon: Syringe,       iconColor: "text-warning", bg: "bg-warning/8", border: "border-warning/30", labelEn: "Vaccination Reminder",   labelTa: "தடுப்பூசி நினைவூட்டல்" },
+const TYPE_LABEL: Record<string, { en: string; ta: string }> = {
+  F_vaccine:   { en: "F Vaccine",              ta: "F தடுப்பூசி" },
+  IBD:         { en: "IBD Vaccine",             ta: "IBD தடுப்பூசி" },
+  LaSota:      { en: "LaSota Vaccine",          ta: "LaSota தடுப்பூசி" },
+  fowl_pox:    { en: "Fowl Pox Vaccine",        ta: "கோழி அம்மை தடுப்பூசி" },
+  deworming:   { en: "Deworming",               ta: "குடற்புழு நீக்கம்" },
+  R2B:         { en: "R2B + Deworming",         ta: "R2B + புழு நீக்கம்" },
+  R2B_booster: { en: "R2B Booster + Deworming", ta: "R2B மீண்டும் + புழு நீக்கம்" },
 };
 
 const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
   const { t, lang } = useLanguage();
 
-  const { data: weekData } = useQuery({ queryKey: ["checkWeek"],   queryFn: () => api.checkWeekSubmitted(), staleTime: 60_000 });
+  const { data: weekData }    = useQuery({ queryKey: ["checkWeek"],   queryFn: () => api.checkWeekSubmitted(), staleTime: 60_000 });
   const { data: marketPrice } = useQuery({ queryKey: ["marketPrice"], queryFn: () => api.getMarketPrice(),    staleTime: 60_000 });
-  const { data: notifications = [] } = useQuery({ queryKey: ["notifications"], queryFn: () => api.getNotifications(), staleTime: 30_000 });
+  const { data: scheduleData } = useQuery({
+    queryKey: ["mySchedule"],
+    queryFn: () => api.getMySchedule().catch(() => ({ batchDate: null, schedule: [] })),
+    staleTime: 60_000,
+  });
 
   const weekDone = weekData?.submitted ?? false;
 
-  // Show max 3 most recent notifications in the alert dashboard
-  const alertNotifs = (notifications as any[]).slice(0, 3);
+  // Pick the single next upcoming (or overdue) vaccination
+  const schedule: any[] = scheduleData?.schedule ?? [];
+  const nextVax = schedule
+    .filter((e) => e.status === "upcoming" || e.status === "scheduled" || e.status === "overdue")
+    .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0] ?? null;
 
   const cards: { key: NavTab; titleTa: string; titleEn: string; icon: typeof Bird; color: string; bg: string }[] = [
     { key: "weekly",  titleTa: t("birdsUpdate"),        titleEn: "(Birds update)",        icon: Bird,          color: "text-primary",   bg: "bg-primary/10" },
@@ -45,6 +55,8 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
     { key: "history", titleTa: t("vaccinationHistory"),  titleEn: "(Vaccination History)", icon: History,       color: "text-success",   bg: "bg-success/10" },
     { key: "prices",  titleTa: t("marketPrice"),         titleEn: "(Market Prices)",       icon: IndianRupee,   color: "text-[#F9A825]", bg: "bg-[#F9A825]/10" },
   ];
+
+  const isOverdue = nextVax?.status === "overdue";
 
   return (
     <div className="flex flex-col gap-4">
@@ -101,55 +113,44 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
         ))}
       </div>
 
-      {/* Alert dashboard */}
-      <div className="rounded-2xl border-2 border-warning/30 overflow-hidden" style={{ background: "linear-gradient(135deg, #fffde7, #fff8e1)" }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-warning/20">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="text-warning shrink-0" size={18} />
-            <p className="text-sm font-bold text-foreground">{t("attention")}</p>
-          </div>
-          <button
-            onClick={() => onNavigate?.("notifications")}
-            className="text-xs font-semibold text-primary flex items-center gap-1"
-          >
-            {lang === "ta" ? "அனைத்தும்" : "View all"} <ChevronRight size={13} />
-          </button>
+      {/* Vaccination alert — single next date only */}
+      <div
+        className={`rounded-2xl border-2 p-4 flex items-center gap-4 ${isOverdue ? "border-destructive/40 bg-destructive/5" : "border-warning/30 bg-warning/5"}`}
+      >
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isOverdue ? "bg-destructive/10" : "bg-warning/10"}`}>
+          <Syringe size={22} className={isOverdue ? "text-destructive" : "text-warning"} />
         </div>
-
-        {/* Notification cards */}
-        <div className="flex flex-col divide-y divide-warning/10">
-          {alertNotifs.length === 0 ? (
-            <div className="flex items-center gap-3 px-4 py-4">
-              <Bell size={18} className="text-muted-foreground/50 shrink-0" />
-              <p className="text-sm text-muted-foreground">
-                {lang === "ta" ? "புதிய அறிவிப்புகள் இல்லை" : "No new alerts"}
+        <div className="flex-1 min-w-0">
+          {nextVax ? (
+            <>
+              <p className={`text-xs font-bold mb-0.5 ${isOverdue ? "text-destructive" : "text-warning"}`}>
+                {isOverdue
+                  ? (lang === "ta" ? "⚠️ காலாவதியானது!" : "⚠️ Overdue!")
+                  : (lang === "ta" ? "💉 அடுத்த தடுப்பூசி" : "💉 Next Vaccination")}
               </p>
-            </div>
+              <p className="text-sm font-bold text-foreground">
+                {TYPE_LABEL[nextVax.type]?.[lang as "en" | "ta"] ?? nextVax.label}
+              </p>
+              <p className={`text-xs mt-0.5 font-semibold ${isOverdue ? "text-destructive" : "text-primary"}`}>
+                {fmt(nextVax.scheduledDate)}
+              </p>
+            </>
           ) : (
-            alertNotifs.map((n: any) => {
-              const cfg = NOTIF_CONFIG[n.type] ?? NOTIF_CONFIG["tip"];
-              const Icon = cfg.icon;
-              const label = lang === "ta" ? cfg.labelTa : cfg.labelEn;
-              return (
-                <div key={n._id} className="flex items-start gap-3 px-4 py-3">
-                  <div className={`w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center shrink-0 mt-0.5`}>
-                    <Icon size={15} className={cfg.iconColor} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${cfg.bg} ${cfg.iconColor}`}>
-                        {label}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground ml-auto shrink-0">{fmt(n.createdAt)}</span>
-                    </div>
-                    <p className="text-xs text-foreground leading-relaxed">{n.message}</p>
-                  </div>
-                </div>
-              );
-            })
+            <>
+              <p className="text-xs font-bold text-muted-foreground mb-0.5">
+                {lang === "ta" ? "தடுப்பூசி அட்டவணை" : "Vaccination Schedule"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {lang === "ta"
+                  ? "CRP குஞ்சு தேதியை பதிவு செய்த பிறகு தெரியும்"
+                  : "CRP will set your batch date to show schedule"}
+              </p>
+            </>
           )}
         </div>
+        <button onClick={() => onNavigate?.("history")} className="shrink-0">
+          <ChevronRight size={18} className="text-muted-foreground" />
+        </button>
       </div>
 
     </div>
