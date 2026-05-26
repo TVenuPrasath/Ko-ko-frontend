@@ -3,7 +3,7 @@ import { User } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ClipboardList, Bug, Bird, AlertTriangle, History,
+  ClipboardList, Bug, Bird, History,
   IndianRupee, ChevronRight, Syringe,
 } from "lucide-react";
 
@@ -32,8 +32,7 @@ const TYPE_LABEL: Record<string, { en: string; ta: string }> = {
 const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
   const { t, lang } = useLanguage();
 
-  const { data: weekData }    = useQuery({ queryKey: ["checkWeek"],   queryFn: () => api.checkWeekSubmitted(), staleTime: 60_000 });
-  const { data: marketPrice } = useQuery({ queryKey: ["marketPrice"], queryFn: () => api.getMarketPrice(),    staleTime: 60_000 });
+  const { data: weekData } = useQuery({ queryKey: ["checkWeek"], queryFn: () => api.checkWeekSubmitted(), staleTime: 60_000 });
   const { data: scheduleData } = useQuery({
     queryKey: ["mySchedule"],
     queryFn: () => api.getMySchedule().catch(() => ({ batchDate: null, schedule: [] })),
@@ -42,11 +41,12 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
 
   const weekDone = weekData?.submitted ?? false;
 
-  // Pick the single next upcoming (or overdue) vaccination
   const schedule: any[] = scheduleData?.schedule ?? [];
   const nextVax = schedule
     .filter((e) => e.status === "upcoming" || e.status === "scheduled" || e.status === "overdue")
     .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0] ?? null;
+
+  const isOverdue = nextVax?.status === "overdue";
 
   const cards: { key: NavTab; titleTa: string; titleEn: string; icon: typeof Bird; color: string; bg: string }[] = [
     { key: "weekly",  titleTa: t("birdsUpdate"),        titleEn: "(Birds update)",        icon: Bird,          color: "text-primary",   bg: "bg-primary/10" },
@@ -55,8 +55,6 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
     { key: "history", titleTa: t("vaccinationHistory"),  titleEn: "(Vaccination History)", icon: History,       color: "text-success",   bg: "bg-success/10" },
     { key: "prices",  titleTa: t("marketPrice"),         titleEn: "(Market Prices)",       icon: IndianRupee,   color: "text-[#F9A825]", bg: "bg-[#F9A825]/10" },
   ];
-
-  const isOverdue = nextVax?.status === "overdue";
 
   return (
     <div className="flex flex-col gap-4">
@@ -76,47 +74,10 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
             {weekDone ? t("weeklyUpdateSubmitted") : t("weeklyUpdateNotSubmitted")}
           </p>
         </div>
-        {marketPrice && (
-          <div className="mt-2 bg-white/15 rounded-xl px-3 py-2 flex items-center gap-2">
-            <IndianRupee size={14} className="text-white/80" />
-            <p className="text-xs font-semibold">
-              {lang === "ta" ? "கறிக்கோழி" : "Broiler"}: ₹{marketPrice.broiler}/kg &nbsp;•&nbsp;
-              {lang === "ta" ? "முட்டை" : "Egg"}: ₹{marketPrice.egg} &nbsp;•&nbsp;
-              {lang === "ta" ? "குஞ்சு" : "Chick"}: ₹{marketPrice.chick}
-            </p>
-          </div>
-        )}
-      </div>
-
-      <p className="text-xs italic text-muted-foreground text-center">{t("dashboardEn")}</p>
-
-      {/* Nav cards */}
-      <div className="flex flex-col gap-3">
-        {cards.map((c) => (
-          <button
-            key={c.key}
-            onClick={() => onNavigate?.(c.key)}
-            className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-border/60 shadow-sm hover:shadow-md hover:border-primary/30 transition-all active:scale-[0.98] text-left"
-          >
-            <div className={`w-12 h-12 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
-              <c.icon size={24} className={c.color} />
-            </div>
-            <div className="flex-1">
-              <p className="text-base font-bold text-foreground leading-tight">{c.titleTa}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{c.titleEn}</p>
-            </div>
-            {c.key === "weekly" && !weekDone && (
-              <span className="text-[10px] bg-warning/20 text-warning font-bold px-2 py-1 rounded-lg shrink-0">{t("pending")}</span>
-            )}
-            <ChevronRight size={16} className="text-muted-foreground shrink-0" />
-          </button>
-        ))}
       </div>
 
       {/* Vaccination alert — single next date only */}
-      <div
-        className={`rounded-2xl border-2 p-4 flex items-center gap-4 ${isOverdue ? "border-destructive/40 bg-destructive/5" : "border-warning/30 bg-warning/5"}`}
-      >
+      <div className={`rounded-2xl border-2 p-4 flex items-center gap-4 ${isOverdue ? "border-destructive/40 bg-destructive/5" : "border-warning/30 bg-warning/5"}`}>
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isOverdue ? "bg-destructive/10" : "bg-warning/10"}`}>
           <Syringe size={22} className={isOverdue ? "text-destructive" : "text-warning"} />
         </div>
@@ -151,6 +112,31 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
         <button onClick={() => onNavigate?.("history")} className="shrink-0">
           <ChevronRight size={18} className="text-muted-foreground" />
         </button>
+      </div>
+
+      <p className="text-xs italic text-muted-foreground text-center">{t("dashboardEn")}</p>
+
+      {/* Nav cards */}
+      <div className="flex flex-col gap-3">
+        {cards.map((c) => (
+          <button
+            key={c.key}
+            onClick={() => onNavigate?.(c.key)}
+            className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-border/60 shadow-sm hover:shadow-md hover:border-primary/30 transition-all active:scale-[0.98] text-left"
+          >
+            <div className={`w-12 h-12 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
+              <c.icon size={24} className={c.color} />
+            </div>
+            <div className="flex-1">
+              <p className="text-base font-bold text-foreground leading-tight">{c.titleTa}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{c.titleEn}</p>
+            </div>
+            {c.key === "weekly" && !weekDone && (
+              <span className="text-[10px] bg-warning/20 text-warning font-bold px-2 py-1 rounded-lg shrink-0">{t("pending")}</span>
+            )}
+            <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+          </button>
+        ))}
       </div>
 
     </div>
