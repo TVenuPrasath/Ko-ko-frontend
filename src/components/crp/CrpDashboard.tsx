@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { User, clearUser } from "@/lib/auth";
 import {
-  LayoutDashboard, Users, Bell, FileText, LogOut, ClipboardList, ShoppingBag,
+  LayoutDashboard, Users, Bell, FileText, LogOut, ClipboardList, ShoppingBag, Syringe,
 } from "lucide-react";
 import CrpDashboardTab from "./CrpDashboardTab";
 import CrpFarmersTab from "./CrpFarmersTab";
@@ -11,13 +11,14 @@ import CrpReportsTab from "./CrpReportsTab";
 import CrpApproveFarmersTab from "./CrpApproveFarmersTab";
 import CrpServicesTab from "./CrpServicesTab";
 import CrpStockTab from "./CrpStockTab";
+import CrpVaccinationScheduleTab from "./CrpVaccinationScheduleTab";
 
 interface CrpDashboardProps {
   user: User;
   onLogout: () => void;
 }
 
-type CrpTab = "dashboard" | "farmers" | "alerts" | "services" | "approve" | "reports" | "stock";
+type CrpTab = "dashboard" | "farmers" | "alerts" | "services" | "approve" | "reports" | "stock" | "vaxschedule";
 
 const CrpDashboard = ({ user, onLogout }: CrpDashboardProps) => {
   const { t, lang, setLang } = useLanguage();
@@ -33,6 +34,7 @@ const CrpDashboard = ({ user, onLogout }: CrpDashboardProps) => {
     { key: "farmers",   icon: Users,           label: t("farmers") },
     { key: "services",  icon: ClipboardList,   label: t("services") },
     { key: "stock",     icon: ShoppingBag,  label: t("stock") },
+    { key: "vaxschedule", icon: Syringe,    label: "Vaccine" },
     { key: "alerts",    icon: Bell,         label: t("alerts") },
     { key: "reports",   icon: FileText,     label: t("reports") },
   ];
@@ -47,9 +49,10 @@ const CrpDashboard = ({ user, onLogout }: CrpDashboardProps) => {
       case "farmers":   return <CrpFarmersTab />;
       case "alerts":    return <CrpAlertsTab user={user} />;
       case "services":  return <CrpServicesTab user={user} />;
-      case "stock":     return <CrpStockTab />;
-      case "approve":   return <CrpApproveFarmersTab />;
-      case "reports":   return <CrpReportsTab />;
+      case "stock":       return <CrpStockTab />;
+      case "approve":     return <CrpApproveFarmersTab />;
+      case "vaxschedule": return <CrpVaccinationScheduleTab />;
+      case "reports":     return <CrpReportsTab />;
     }
   };
 

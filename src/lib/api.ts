@@ -35,6 +35,10 @@ export const api = {
   getVaccinations: () => request("GET", "/vaccinations"),
   getAllVaccinations: () => request("GET", "/vaccinations/all"),
   addVaccination: (body: object) => request("POST", "/vaccinations", body),
+  getMySchedule: () => request("GET", "/vaccinations/schedule/me"),
+  getFarmerSchedule: (farmerId: string) => request("GET", `/vaccinations/schedule/${farmerId}`),
+  setBatchDate: (body: { userId: string; batchDate: string }) => request("POST", "/vaccinations/batch", body),
+  completeVaccination: (id: string) => request("PATCH", `/vaccinations/${id}/complete`),
 
   // Service Demands
   getServiceDemands: () => request("GET", "/services"),

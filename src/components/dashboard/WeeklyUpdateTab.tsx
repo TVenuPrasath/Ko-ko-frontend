@@ -92,7 +92,7 @@ const WeeklyUpdateTab = () => {
   return (
     <div className="flex flex-col gap-5">
       {/* Bird count card */}
-      <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden" key={birdResetKey}>
+      <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden" key={`bird-${birdResetKey}`}>
         <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #2E7D32, #4CAF50)" }}>
           <Bird size={20} className="text-white" />
           <div>
@@ -120,7 +120,7 @@ const WeeklyUpdateTab = () => {
       </div>
 
       {/* Sale stock card */}
-      <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden" key={saleResetKey}>
+      <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden" key={`sale-${saleResetKey}`}>
         <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #8D6E63, #A1887F)" }}>
           <ShoppingCart size={20} className="text-white" />
           <div>
