@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { formatDate } from "@/lib/mockData";
 import { TextToSpeech } from "@capacitor-community/text-to-speech";
-import { Bell, AlertTriangle, TrendingUp, Lightbulb, Volume2, VolumeX, Square } from "lucide-react";
+import { Bell, AlertTriangle, TrendingUp, Lightbulb, Volume2, VolumeX, Square, Syringe } from "lucide-react";
 
 const useSpeech = () => {
   const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -59,12 +59,10 @@ const useSpeech = () => {
 
   const speak = async (id: string, text: string) => {
     if (typeof window === "undefined") return;
-
     if (window.navigator?.userAgent?.includes("Android") || window.navigator?.userAgent?.includes("iPhone")) {
       await speakNative(id, text);
       return;
     }
-
     speakWeb(id, text);
   };
 
@@ -87,15 +85,16 @@ const NotificationsTab = () => {
   });
 
   const typeConfig: Record<string, { label: string; className: string; icon: typeof Bell; iconColor: string; bg: string }> = {
-    disease: { label: t("diseaseAlert"), className: "bg-danger text-danger-foreground",   icon: AlertTriangle, iconColor: "text-danger",  bg: "bg-danger/8" },
-    market:  { label: t("marketPrice"),  className: "bg-success text-success-foreground", icon: TrendingUp,    iconColor: "text-success", bg: "bg-success/8" },
-    tip:     { label: t("farmingTip"),   className: "bg-primary text-primary-foreground", icon: Lightbulb,     iconColor: "text-primary", bg: "bg-primary/8" },
+    disease:              { label: t("diseaseAlert"),       className: "bg-danger text-danger-foreground",   icon: AlertTriangle, iconColor: "text-danger",       bg: "bg-danger/8" },
+    market:               { label: t("marketPrice"),        className: "bg-success text-success-foreground", icon: TrendingUp,    iconColor: "text-success",      bg: "bg-success/8" },
+    tip:                  { label: t("farmingTip"),         className: "bg-primary text-primary-foreground", icon: Lightbulb,     iconColor: "text-primary",      bg: "bg-primary/8" },
+    vaccination_reminder: { label: lang === "ta" ? "தடுப்பூசி நினைவூட்டல்" : "Vaccination Reminder", className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },
   };
 
   if (isLoading) {
     return (
       <div className="flex flex-col gap-3">
-        {[1,2,3].map((i) => (
+        {[1, 2, 3].map((i) => (
           <div key={i} className="bg-white rounded-2xl border border-border/60 p-4 animate-pulse">
             <div className="h-4 bg-muted rounded w-1/3 mb-2" />
             <div className="h-3 bg-muted rounded w-full" />
@@ -108,7 +107,6 @@ const NotificationsTab = () => {
   if (notifications.length === 0) {
     return (
       <div className="relative flex flex-col items-center justify-center py-20 text-muted-foreground">
-        {/* Language Toggle */}
         <div className="absolute top-4 right-4">
           <button
             onClick={() => setLang(lang === "ta" ? "en" : "ta")}
@@ -117,7 +115,6 @@ const NotificationsTab = () => {
             {lang === "ta" ? "EN" : "தமிழ்"}
           </button>
         </div>
-
         <div className="w-20 h-20 rounded-full bg-muted/40 flex items-center justify-center mb-4">
           <Bell size={36} className="text-muted-foreground/50" />
         </div>
@@ -131,7 +128,6 @@ const NotificationsTab = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Stop all button — shown when any notification is playing */}
       {isSpeaking && (
         <button
           onClick={stop}
@@ -141,7 +137,7 @@ const NotificationsTab = () => {
         </button>
       )}
 
-      {notifications.map((n: any) => {
+      {(notifications as any[]).map((n) => {
         const config = typeConfig[n.type] ?? { label: n.type, className: "bg-muted text-foreground", icon: Bell, iconColor: "text-muted-foreground", bg: "bg-muted/20" };
         const Icon = config.icon;
         const isThisSpeaking = speakingId === n._id;
@@ -158,8 +154,6 @@ const NotificationsTab = () => {
                   <span className="text-xs text-muted-foreground shrink-0">{formatDate(n.createdAt)}</span>
                 </div>
                 <p className="text-sm text-foreground leading-relaxed">{n.message}</p>
-
-                {/* TTS button */}
                 <button
                   onClick={() => speak(n._id, n.message)}
                   className={`mt-2.5 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
