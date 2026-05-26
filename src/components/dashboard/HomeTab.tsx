@@ -42,9 +42,10 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
   const weekDone = weekData?.submitted ?? false;
 
   const schedule: any[] = scheduleData?.schedule ?? [];
-  const nextVax = schedule
-    .filter((e) => e.status === "upcoming" || e.status === "scheduled" || e.status === "overdue")
-    .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0] ?? null;
+  const nextVax = (Array.isArray(scheduleData) ? scheduleData : [])
+    .flatMap((b: any) => (b.schedule ?? []).map((e: any) => ({ ...e, batchName: b.batchName })))
+    .filter((e: any) => e.status === "scheduled" || e.status === "overdue" || e.status === "rescheduled")
+    .sort((a: any, b: any) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0] ?? null;
 
   const isOverdue = nextVax?.status === "overdue";
 
@@ -93,7 +94,7 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
                 {TYPE_LABEL[nextVax.type]?.[lang as "en" | "ta"] ?? nextVax.label}
               </p>
               <p className={`text-xs mt-0.5 font-semibold ${isOverdue ? "text-destructive" : "text-primary"}`}>
-                {fmt(nextVax.scheduledDate)}
+                {fmt(nextVax.scheduledDate)}{nextVax.batchName ? ` • ${nextVax.batchName}` : ""}
               </p>
             </>
           ) : (

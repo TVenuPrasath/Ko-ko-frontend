@@ -34,11 +34,18 @@ export const api = {
   // Vaccinations
   getVaccinations: () => request("GET", "/vaccinations"),
   getAllVaccinations: () => request("GET", "/vaccinations/all"),
-  addVaccination: (body: object) => request("POST", "/vaccinations", body),
   getMySchedule: () => request("GET", "/vaccinations/schedule/me"),
   getFarmerSchedule: (farmerId: string) => request("GET", `/vaccinations/schedule/${farmerId}`),
-  setBatchDate: (body: { userId: string; batchDate: string }) => request("POST", "/vaccinations/batch", body),
-  completeVaccination: (id: string) => request("PATCH", `/vaccinations/${id}/complete`),
+  // Batch management
+  getMyBatches: () => request("GET", "/vaccinations/batches/me"),
+  getFarmerBatches: (farmerId: string) => request("GET", `/vaccinations/batches/farmer/${farmerId}`),
+  getAllBatches: () => request("GET", "/vaccinations/batches/all"),
+  createBatch: (body: { userId: string; batchName: string; numberOfChicks: number; batchDate: string }) => request("POST", "/vaccinations/batches", body),
+  updateBatchStatus: (batchId: string, batchStatus: string) => request("PATCH", `/vaccinations/batches/${batchId}/status`, { batchStatus }),
+  // Vaccination actions
+  completeVaccination: (id: string, notes?: string) => request("PATCH", `/vaccinations/${id}/complete`, { notes }),
+  missVaccination: (id: string, notes?: string) => request("PATCH", `/vaccinations/${id}/missed`, { notes }),
+  rescheduleVaccination: (id: string, rescheduledDate: string, notes?: string) => request("PATCH", `/vaccinations/${id}/reschedule`, { rescheduledDate, notes }),
 
   // Service Demands
   getServiceDemands: () => request("GET", "/services"),
