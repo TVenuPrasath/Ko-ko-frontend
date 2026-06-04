@@ -95,16 +95,15 @@ const NotificationsTab = ({ user }: { user: User }) => {
     enabled: activeTab === "read",
   });
 
-  // Mark all unread as read when leaving the tab (unmount)
+  // When switching away from unread tab, mark all as read and refresh read tab
   useEffect(() => {
-    return () => {
-      if ((unread as any[]).length > 0) {
-        api.markAllNotificationsRead().then(() => {
-          queryClient.invalidateQueries({ queryKey: ["notifications"] });
-        }).catch(() => {});
-      }
-    };
-  }, [unread]);
+    if (activeTab === "read" && (unread as any[]).length > 0) {
+      api.markAllNotificationsRead().then(() => {
+        queryClient.invalidateQueries({ queryKey: ["notifications", "unread"] });
+        queryClient.invalidateQueries({ queryKey: ["notifications", "read"] });
+      }).catch(() => {});
+    }
+  }, [activeTab]);
 
   const notifications = (activeTab === "unread" ? unread : read) as any[];
   const isLoading = activeTab === "unread" ? loadingUnread : loadingRead;
