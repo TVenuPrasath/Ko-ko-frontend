@@ -103,7 +103,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         {tab === "disease" && <DiseaseReportTab user={user} />}
         {tab === "history" && <VaccinationHistoryTab />}
         {tab === "prices" && <MarketPricesTab />}
-        {tab === "notifications" && <NotificationsTab />}
+        {tab === "notifications" && <NotificationsTab user={user} />}
         {tab === "loan" && (
           <div className="flex flex-col gap-5">
             <ServiceRequestTab />

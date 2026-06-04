@@ -42,6 +42,7 @@ export const api = {
   getAllBatches: () => request("GET", "/vaccinations/batches/all"),
   createBatch: (body: { userId: string; batchName: string; numberOfChicks: number; batchDate: string }) => request("POST", "/vaccinations/batches", body),
   updateBatchStatus: (batchId: string, batchStatus: string) => request("PATCH", `/vaccinations/batches/${batchId}/status`, { batchStatus }),
+  deleteBatch: (batchId: string) => request("DELETE", `/vaccinations/batches/${batchId}`),
   // Vaccination actions
   completeVaccination: (id: string, notes?: string) => request("PATCH", `/vaccinations/${id}/complete`, { notes }),
   missVaccination: (id: string, notes?: string) => request("PATCH", `/vaccinations/${id}/missed`, { notes }),
@@ -66,10 +67,14 @@ export const api = {
   setMarketPrice: (body: { broiler: number; chick: number; egg: number }, officer?: any) => request("POST", "/market", body),
 
   // Notifications
-  getNotifications: () => request("GET", "/notifications"),
+  getNotifications: (read?: boolean) => request("GET", read === undefined ? "/notifications" : `/notifications?read=${read}`),
   createNotification: (body: { type: string; message: string; hamlet?: string; shg_name?: string; shg_names?: string[] }) =>
     request("POST", "/notifications", body),
   deleteNotification: (id: string) => request("DELETE", `/notifications/${id}`),
+  registerDeviceToken: (token: string, platform: string) => request("POST", "/notifications/register-token", { token, platform }),
+  unregisterDeviceToken: (token: string) => request("DELETE", "/notifications/unregister-token", { token }),
+  markNotificationRead: (id: string) => request("PATCH", `/notifications/${id}/read`),
+  markAllNotificationsRead: () => request("PATCH", "/notifications/mark-all-read"),
 
   // Farmers (CRP)
   getFarmers: () => request("GET", "/farmers"),

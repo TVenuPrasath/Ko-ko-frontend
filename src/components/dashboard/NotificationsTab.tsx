@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDate } from "@/lib/mockData";
 import { TextToSpeech } from "@capacitor-community/text-to-speech";
 import { Bell, AlertTriangle, TrendingUp, Lightbulb, Volume2, VolumeX, Square, Syringe, CheckCircle2 } from "lucide-react";
+import { User } from "@/lib/auth";
 
 const useSpeech = () => {
   const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -75,14 +76,38 @@ const useSpeech = () => {
   return { speakingId, speak, stop };
 };
 
-const NotificationsTab = () => {
+const NotificationsTab = ({ user }: { user: User }) => {
   const { t, lang, setLang } = useLanguage();
   const { speakingId, speak, stop } = useSpeech();
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ["notifications"],
-    queryFn: () => api.getNotifications(),
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"unread" | "read">("unread");
+
+  const { data: unread = [], isLoading: loadingUnread } = useQuery({
+    queryKey: ["notifications", "unread"],
+    queryFn: () => api.getNotifications(false),
     staleTime: 30_000,
   });
+
+  const { data: read = [], isLoading: loadingRead } = useQuery({
+    queryKey: ["notifications", "read"],
+    queryFn: () => api.getNotifications(true),
+    staleTime: 30_000,
+    enabled: activeTab === "read",
+  });
+
+  // Mark all unread as read when leaving the tab (unmount)
+  useEffect(() => {
+    return () => {
+      if ((unread as any[]).length > 0) {
+        api.markAllNotificationsRead().then(() => {
+          queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        }).catch(() => {});
+      }
+    };
+  }, [unread]);
+
+  const notifications = (activeTab === "unread" ? unread : read) as any[];
+  const isLoading = activeTab === "unread" ? loadingUnread : loadingRead;
 
   const typeConfig: Record<string, { label: string; className: string; icon: typeof Bell; iconColor: string; bg: string }> = {
     disease:                 { label: t("diseaseAlert"),       className: "bg-danger text-danger-foreground",   icon: AlertTriangle, iconColor: "text-danger",       bg: "bg-danger/8" },
@@ -121,30 +146,36 @@ const NotificationsTab = () => {
     );
   }
 
-  if (notifications.length === 0) {
-    return (
-      <div className="relative flex flex-col items-center justify-center py-20 text-muted-foreground">
-        <div className="absolute top-4 right-4">
-          <button
-            onClick={() => setLang(lang === "ta" ? "en" : "ta")}
-            className="text-xs font-bold border border-border rounded-lg px-2.5 py-1 text-muted-foreground hover:text-foreground bg-muted/20"
-          >
-            {lang === "ta" ? "EN" : "தமிழ்"}
-          </button>
-        </div>
-        <div className="w-20 h-20 rounded-full bg-muted/40 flex items-center justify-center mb-4">
-          <Bell size={36} className="text-muted-foreground/50" />
-        </div>
-        <p className="text-base font-semibold text-foreground">{t("noNotifications")}</p>
-        <p className="text-sm text-muted-foreground mt-1">{t("noNotificationsSub")}</p>
-      </div>
-    );
-  }
-
   const isSpeaking = speakingId !== null;
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Tabs */}
+      <div className="flex rounded-xl overflow-hidden border border-border">
+        <button
+          onClick={() => setActiveTab("unread")}
+          className={`flex-1 py-2.5 text-sm font-semibold transition-colors relative ${
+            activeTab === "unread" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"
+          }`}
+        >
+          {lang === "ta" ? "படிக்காதவை" : "Unread"}
+          {(unread as any[]).length > 0 && (
+            <span className="ml-1.5 bg-danger text-white text-[9px] font-bold rounded-full px-1.5 py-0.5">
+              {(unread as any[]).length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab("read")}
+          className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+            activeTab === "read" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"
+          }`}
+        >
+          {lang === "ta" ? "படித்தவை" : "Read"}
+          <span className="ml-1 text-xs opacity-70">(30 {lang === "ta" ? "நாள்" : "days"})</span>
+        </button>
+      </div>
+
       {isSpeaking && (
         <button
           onClick={stop}
@@ -154,11 +185,23 @@ const NotificationsTab = () => {
         </button>
       )}
 
-      {(notifications as any[]).map((n) => {
+      {notifications.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+          <div className="w-16 h-16 rounded-full bg-muted/40 flex items-center justify-center mb-3">
+            <Bell size={28} className="text-muted-foreground/50" />
+          </div>
+          <p className="text-sm font-semibold text-foreground">
+            {activeTab === "unread"
+              ? (lang === "ta" ? "படிக்காத அறிவிப்புகள் இல்லை" : "No unread notifications")
+              : (lang === "ta" ? "கடந்த 30 நாளில் படித்த அறிவிப்புகள் இல்லை" : "No read notifications in past 30 days")}
+          </p>
+        </div>
+      )}
+
+      {notifications.map((n: any) => {
         const config = typeConfig[n.type] ?? { label: n.type, className: "bg-muted text-foreground", icon: Bell, iconColor: "text-muted-foreground", bg: "bg-muted/20" };
         const Icon = config.icon;
         const isThisSpeaking = speakingId === n._id;
-        const isUnread = !n.read_by?.includes((window as any).__userId);
 
         return (
           <div key={n._id} className={`bg-white rounded-2xl border shadow-sm p-4 transition-all ${isThisSpeaking ? "border-primary/40 bg-primary/5" : "border-border/60"}`}>
