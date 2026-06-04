@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { formatDate } from "@/lib/mockData";
 import { TextToSpeech } from "@capacitor-community/text-to-speech";
-import { Bell, AlertTriangle, TrendingUp, Lightbulb, Volume2, VolumeX, Square, Syringe } from "lucide-react";
+import { Bell, AlertTriangle, TrendingUp, Lightbulb, Volume2, VolumeX, Square, Syringe, CheckCircle2 } from "lucide-react";
 
 const useSpeech = () => {
   const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -85,10 +85,27 @@ const NotificationsTab = () => {
   });
 
   const typeConfig: Record<string, { label: string; className: string; icon: typeof Bell; iconColor: string; bg: string }> = {
-    disease:              { label: t("diseaseAlert"),       className: "bg-danger text-danger-foreground",   icon: AlertTriangle, iconColor: "text-danger",       bg: "bg-danger/8" },
-    market:               { label: t("marketPrice"),        className: "bg-success text-success-foreground", icon: TrendingUp,    iconColor: "text-success",      bg: "bg-success/8" },
-    tip:                  { label: t("farmingTip"),         className: "bg-primary text-primary-foreground", icon: Lightbulb,     iconColor: "text-primary",      bg: "bg-primary/8" },
-    vaccination_reminder: { label: lang === "ta" ? "தடுப்பூசி நினைவூட்டல்" : "Vaccination Reminder", className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },
+    disease:                 { label: t("diseaseAlert"),       className: "bg-danger text-danger-foreground",   icon: AlertTriangle, iconColor: "text-danger",       bg: "bg-danger/8" },
+    market:                  { label: t("marketPrice"),        className: "bg-success text-success-foreground", icon: TrendingUp,    iconColor: "text-success",      bg: "bg-success/8" },
+    tip:                     { label: t("farmingTip"),         className: "bg-primary text-primary-foreground", icon: Lightbulb,     iconColor: "text-primary",      bg: "bg-primary/8" },
+    vaccination_reminder:    { label: lang === "ta" ? "தடுப்பூசி நினைவூட்டல்" : "Vaccination Reminder", className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },
+    r2b_reminder:            { label: "R2B Reminder",           className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },
+    deworming_reminder:      { label: "Deworming Reminder",      className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },
+    booster_reminder:        { label: "Booster Reminder",        className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },
+    vaccination_completed:   { label: "Vaccination Completed",   className: "bg-success text-success-foreground", icon: CheckCircle2, iconColor: "text-success", bg: "bg-success/8" },
+    vaccination_missed:      { label: "Vaccination Missed",      className: "bg-danger text-danger-foreground", icon: AlertTriangle, iconColor: "text-danger", bg: "bg-danger/8" },
+    vaccination_rescheduled: { label: "Vaccination Rescheduled", className: "bg-primary text-primary-foreground", icon: Syringe, iconColor: "text-primary", bg: "bg-primary/8" },
+    mortality_alert:         { label: "Mortality Alert",         className: "bg-danger text-danger-foreground", icon: AlertTriangle, iconColor: "text-danger", bg: "bg-danger/8" },
+    vaccine_overdue:         { label: "Vaccine Overdue",         className: "bg-danger text-danger-foreground", icon: AlertTriangle, iconColor: "text-danger", bg: "bg-danger/8" },
+    user_registration_pending: { label: "Registration Pending",   className: "bg-primary text-primary-foreground", icon: Bell, iconColor: "text-primary", bg: "bg-primary/8" },
+    user_approved:           { label: "User Approved",           className: "bg-success text-success-foreground", icon: CheckCircle2, iconColor: "text-success", bg: "bg-success/8" },
+    user_rejected:           { label: "User Rejected",           className: "bg-danger text-danger-foreground", icon: AlertTriangle, iconColor: "text-danger", bg: "bg-danger/8" },
+    approval_reminder:       { label: "Approval Reminder",       className: "bg-primary text-primary-foreground", icon: Bell, iconColor: "text-primary", bg: "bg-primary/8" },
+    loan_applied:            { label: "Loan Applied",            className: "bg-primary text-primary-foreground", icon: TrendingUp, iconColor: "text-primary", bg: "bg-primary/8" },
+    loan_approved:           { label: "Loan Approved",           className: "bg-success text-success-foreground", icon: CheckCircle2, iconColor: "text-success", bg: "bg-success/8" },
+    loan_rejected:           { label: "Loan Rejected",           className: "bg-danger text-danger-foreground", icon: AlertTriangle, iconColor: "text-danger", bg: "bg-danger/8" },
+    loan_due_reminder:       { label: "Loan Due Reminder",       className: "bg-warning text-warning-foreground", icon: Bell, iconColor: "text-warning", bg: "bg-warning/8" },
+    loan_disbursed:          { label: "Loan Disbursed",          className: "bg-success text-success-foreground", icon: TrendingUp, iconColor: "text-success", bg: "bg-success/8" },
   };
 
   if (isLoading) {
@@ -141,6 +158,7 @@ const NotificationsTab = () => {
         const config = typeConfig[n.type] ?? { label: n.type, className: "bg-muted text-foreground", icon: Bell, iconColor: "text-muted-foreground", bg: "bg-muted/20" };
         const Icon = config.icon;
         const isThisSpeaking = speakingId === n._id;
+        const isUnread = !n.read_by?.includes((window as any).__userId);
 
         return (
           <div key={n._id} className={`bg-white rounded-2xl border shadow-sm p-4 transition-all ${isThisSpeaking ? "border-primary/40 bg-primary/5" : "border-border/60"}`}>
