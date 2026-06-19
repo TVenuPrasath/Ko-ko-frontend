@@ -66,7 +66,7 @@ export const api = {
   // Service Demands
   getServiceDemands: () => request("GET", "/services"),
   getAllServiceDemands: () => request("GET", "/services/all"),
-  submitServiceDemand: (body: { type: string; quantity: number; amount?: number; notes?: string }) =>
+  submitServiceDemand: (body: { type: string; quantity: number; amount?: number; notes?: string; option?: string }) =>
     request("POST", "/services", body),
   completeServiceDemand: (id: string) => request("PATCH", `/services/${id}/complete`),
   rejectServiceDemand: (id: string) => request("PATCH", `/services/${id}/reject`),
