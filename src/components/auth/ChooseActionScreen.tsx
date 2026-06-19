@@ -41,9 +41,7 @@ const ChooseActionScreen = ({ onRegister, onLogin }: ChooseActionScreenProps) =>
         </div>
         <h1 className="text-2xl font-bold text-white leading-tight tracking-wide">{t("appNameTamil")}</h1>
         <p className="text-sm text-white/80 mt-1.5 font-medium">{t("appTagline")}</p>
-        <div className="flex items-center gap-2 mt-3 text-white/60 text-xs">
-          <span>🌿</span><span>{t("appTagline")}</span><span>🌿</span>
-        </div>
+
       </div>
 
       {/* Content */}

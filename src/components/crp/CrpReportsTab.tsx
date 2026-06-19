@@ -120,10 +120,26 @@ const CrpReportsTab = () => {
   }, []);
 
   const today = new Date();
+  const farmerName = (item: any) => item.userId?.name || item.farmerName || item.name || "-";
+  const farmerPhone = (item: any) => item.userId?.phone || item.phone || "-";
+  const farmerShg = (item: any) => item.userId?.shg_name || item.shg_name || "-";
+  const farmerAddress = (item: any) => {
+    const user = item.userId || item;
+    return [user.houseNo, user.street, user.hamlet || item.hamlet].filter(Boolean).join(", ") || "-";
+  };
+  const farmerInfoHeadersEn = ["Farmer", "SHG Name", "Address", "Contact No"];
+  const farmerInfoHeadersTamil = ["விவசாயி", "SHG பெயர்", "முகவரி", "தொடர்பு எண்"];
+  const farmerInfoHeaders = lang === "en" ? farmerInfoHeadersEn : farmerInfoHeadersTamil;
+  const farmerInfoCells = (item: any): (string | number)[] => [
+    farmerName(item),
+    farmerShg(item),
+    farmerAddress(item),
+    farmerPhone(item),
+  ];
 
-  const farmerRows: (string | number)[][] = farmers.map((f) => [f.name, f.phone, f.hamlet, f.shg_name || "-"]);
-  const farmerHeadersTamil = ["பெயர்", "தொலைபேசி", "ஊர்", "SHG"];
-  const farmerHeadersEn = ["Name", "Phone", "Hamlet", "SHG"];
+  const farmerRows: (string | number)[][] = farmers.map((f) => farmerInfoCells(f));
+  const farmerHeadersTamil = farmerInfoHeadersTamil;
+  const farmerHeadersEn = farmerInfoHeadersEn;
   const farmerHeaders = lang === "en" ? farmerHeadersEn : farmerHeadersTamil;
 
   const demandTypes = ["Loan", "Feed Stock", "Equipment", "Vaccination", "Deworming"];
@@ -136,15 +152,15 @@ const CrpReportsTab = () => {
   const demandHeaders = lang === "en" ? demandHeadersEn : demandHeadersTamil;
 
   const pendingDisease = diseaseReports.filter((r) => r.status === "Pending");
-  const diseaseRows: (string | number)[][] = diseaseReports.map((r) => [r.userId?.name || "-", formatDate(r.reportedAt), r.description, r.status]);
-  const diseaseHeadersTamil = ["விவசாயி", "தேதி", "விவரம்", "நிலை"];
-  const diseaseHeadersEn = ["Farmer", "Date", "Description", "Status"];
+  const diseaseRows: (string | number)[][] = diseaseReports.map((r) => [...farmerInfoCells(r), formatDate(r.reportedAt), r.description, r.status]);
+  const diseaseHeadersTamil = [...farmerInfoHeadersTamil, "தேதி", "விவரம்", "நிலை"];
+  const diseaseHeadersEn = [...farmerInfoHeadersEn, "Date", "Description", "Status"];
   const diseaseHeaders = lang === "en" ? diseaseHeadersEn : diseaseHeadersTamil;
 
   const overdueVax = vaccinations.filter((v) => v.type !== "deworming" && new Date(v.nextDueDate) < today);
   const overdueDew = vaccinations.filter((v) => v.type === "deworming" && new Date(v.nextDueDate) < today);
   const vacRows: (string | number)[][] = vaccinations.map((v) => [
-    v.userId?.name || "-",
+    ...farmerInfoCells(v),
     v.type === "deworming"
       ? (lang === "en" ? "Deworming" : "குடற்புழு நீக்கம்")
       : v.type === "smallpox"
@@ -155,16 +171,16 @@ const CrpReportsTab = () => {
       ? (lang === "en" ? "Overdue" : "காலாவதி")
       : (lang === "en" ? "OK" : "சரி"),
   ]);
-  const vacHeadersTamil = ["விவசாயி", "வகை", "கடைசி தேதி", "அடுத்த தேதி", "நிலை"];
-  const vacHeadersEn = ["Farmer", "Type", "Last Date", "Next Date", "Status"];
+  const vacHeadersTamil = [...farmerInfoHeadersTamil, "வகை", "கடைசி தேதி", "அடுத்த தேதி", "நிலை"];
+  const vacHeadersEn = [...farmerInfoHeadersEn, "Type", "Last Date", "Next Date", "Status"];
   const vacHeaders = lang === "en" ? vacHeadersEn : vacHeadersTamil;
 
   const weeklyRows: (string | number)[][] = birdUpdates.map((u) => [
-    u.userId?.name || "-", formatDate(u.weekDate), u.chicks, u.growers, u.layers, u.broilers,
+    ...farmerInfoCells(u), formatDate(u.weekDate), u.chicks, u.growers, u.layers, u.broilers,
     u.chicks + u.growers + u.layers + u.broilers,
   ]);
-  const weeklyHeadersTamil = ["விவசாயி", "வாரம்", "குஞ்சு", "வளர்ச்சி", "முட்டை", "கறி", "மொத்தம்"];
-  const weeklyHeadersEn = ["Farmer", "Week", "Chick", "Growers", "Eggs", "Broilers", "Total"];
+  const weeklyHeadersTamil = [...farmerInfoHeadersTamil, "வாரம்", "குஞ்சு", "வளர்ச்சி", "முட்டை", "கறி", "மொத்தம்"];
+  const weeklyHeadersEn = [...farmerInfoHeadersEn, "Week", "Chick", "Growers", "Eggs", "Broilers", "Total"];
   const weeklyHeaders = lang === "en" ? weeklyHeadersEn : weeklyHeadersTamil;
 
   const loans = demands.filter((d) => d.type === "Loan");
@@ -172,15 +188,15 @@ const CrpReportsTab = () => {
   const totalApproved  = loans.filter((d) => d.status === "Completed").reduce((s, d) => s + (d.amount || 0), 0);
   const totalRejected  = loans.filter((d) => d.status === "Rejected").reduce((s, d) => s + (d.amount || 0), 0);
   const totalPending   = loans.filter((d) => d.status === "Pending").reduce((s, d) => s + (d.amount || 0), 0);
-  const loanRows: (string | number)[][] = loans.map((d) => [d.userId?.name || d.farmerName || "-", d.amount || 0, d.notes || "-", d.status, formatDate(d.createdAt)]);
-  const loanHeadersTamil = ["விவசாயி", "தொகை", "நோக்கம்", "நிலை", "தேதி"];
-  const loanHeadersEn = ["Farmer", "Amount", "Purpose", "Status", "Date"];
+  const loanRows: (string | number)[][] = loans.map((d) => [...farmerInfoCells(d), d.amount || 0, d.notes || "-", d.status, formatDate(d.createdAt)]);
+  const loanHeadersTamil = [...farmerInfoHeadersTamil, "தொகை", "நோக்கம்", "நிலை", "தேதி"];
+  const loanHeadersEn = [...farmerInfoHeadersEn, "Amount", "Purpose", "Status", "Date"];
   const loanHeaders = lang === "en" ? loanHeadersEn : loanHeadersTamil;
 
   const soldStocks = saleStocks;
-  const soldRows: (string | number)[][] = soldStocks.map((s) => [s.farmerName, s.hamlet, s.broilers, s.chicks, s.eggs, formatDate(s.createdAt), s.soldAt ? formatDate(s.soldAt) : "-", s.status === "sold" ? (lang === "en" ? "Sold" : "விற்பனையானது") : (lang === "en" ? "Ready for Sale" : "விற்பனைக்கு தயார்")]);
-  const soldHeadersTamil = ["விவசாயி", "ஊர்", "கறிக்கோழி", "குஞ்சு", "முட்டை", "பதிவு தேதி", "விற்பனை தேதி", "நிலை"];
-  const soldHeadersEn = ["Farmer", "Hamlet", "Broiler Chicken", "Chick", "Egg", "Reg Date", "Sale Date", "Status"];
+  const soldRows: (string | number)[][] = soldStocks.map((s) => [...farmerInfoCells(s), s.broilers, s.chicks, s.eggs, formatDate(s.createdAt), s.soldAt ? formatDate(s.soldAt) : "-", s.status === "sold" ? (lang === "en" ? "Sold" : "விற்பனையானது") : (lang === "en" ? "Ready for Sale" : "விற்பனைக்கு தயார்")]);
+  const soldHeadersTamil = [...farmerInfoHeadersTamil, "கறிக்கோழி", "குஞ்சு", "முட்டை", "பதிவு தேதி", "விற்பனை தேதி", "நிலை"];
+  const soldHeadersEn = [...farmerInfoHeadersEn, "Broiler Chicken", "Chick", "Egg", "Reg Date", "Sale Date", "Status"];
   const soldHeaders = lang === "en" ? soldHeadersEn : soldHeadersTamil;
 
   return (
@@ -211,13 +227,12 @@ const CrpReportsTab = () => {
 
       <Section title={lang === "en" ? "Requested Farmers List" : "கோரிக்கையாளர் பட்டியல்"} defaultOpen={false}
         onExcel={() => {
-          const listHeadersExcelTamil = ["வகை", "#", "பெயர்", "ஊர்", "தொகை/அளவு", "நிலை", "தேதி"];
-          const listHeadersExcelEn = ["Type", "#", "Name", "Hamlet", "Amount/Qty", "Status", "Date"];
+          const listHeadersExcelTamil = ["வகை", "#", ...farmerInfoHeadersTamil, "தொகை/அளவு", "நிலை", "தேதி"];
+          const listHeadersExcelEn = ["Type", "#", ...farmerInfoHeadersEn, "Amount/Qty", "Status", "Date"];
           const listHeadersExcel = lang === "en" ? listHeadersExcelEn : listHeadersExcelTamil;
           const allRows: (string | number)[][] = demandTypes.flatMap((type) =>
             demands.filter((d) => d.type === type).map((d, i) => [
-              type, i + 1, d.userId?.name || d.farmerName || "-",
-              d.userId?.hamlet || d.hamlet || "-",
+              type, i + 1, ...farmerInfoCells(d),
               d.type === "Loan" ? `₹${(d.amount || 0).toLocaleString()}` : (d.quantity || "-"),
               d.status, formatDate(d.createdAt),
             ])
@@ -225,15 +240,14 @@ const CrpReportsTab = () => {
           downloadExcel(listHeadersExcel, allRows, "demand_farmers_list");
         }}
         onPdf={async () => {
-          const listHeadersTamil = ["#", "பெயர்", "ஊர்", "தொகை/அளவு", "நிலை", "தேதி"];
-          const listHeadersEn = ["#", "Name", "Hamlet", "Amount/Qty", "Status", "Date"];
+          const listHeadersTamil = ["#", ...farmerInfoHeadersTamil, "தொகை/அளவு", "நிலை", "தேதி"];
+          const listHeadersEn = ["#", ...farmerInfoHeadersEn, "Amount/Qty", "Status", "Date"];
           const listHeaders = lang === "en" ? listHeadersEn : listHeadersTamil;
           for (const type of demandTypes) {
             const list = demands.filter((d) => d.type === type);
             if (list.length === 0) continue;
             const rows = list.map((d, i) => [
-              i + 1, d.userId?.name || d.farmerName || "-",
-              d.userId?.hamlet || d.hamlet || "-",
+              i + 1, ...farmerInfoCells(d),
               type === "Loan" ? `Rs.${(d.amount || 0).toLocaleString()}` : (d.quantity || "-"),
               d.status, formatDate(d.createdAt),
             ]);
@@ -260,7 +274,9 @@ const CrpReportsTab = () => {
                     <thead><tr className="border-b border-border">
                       <th className="text-left py-1.5 px-1 text-muted-foreground">#</th>
                       <th className="text-left py-1.5 px-1 text-muted-foreground">{lang === "en" ? "Name" : "பெயர்"}</th>
-                      <th className="text-left py-1.5 px-1 text-muted-foreground">{lang === "en" ? "Hamlet" : "ஊர்"}</th>
+                      <th className="text-left py-1.5 px-1 text-muted-foreground">{lang === "en" ? "SHG Name" : "SHG பெயர்"}</th>
+                      <th className="text-left py-1.5 px-1 text-muted-foreground">{lang === "en" ? "Address" : "முகவரி"}</th>
+                      <th className="text-left py-1.5 px-1 text-muted-foreground">{lang === "en" ? "Contact No" : "தொடர்பு எண்"}</th>
                       <th className="text-left py-1.5 px-1 text-muted-foreground">{lang === "en" ? "Amount/Qty" : "தொகை/அளவு"}</th>
                       <th className="text-left py-1.5 px-1 text-muted-foreground">{lang === "en" ? "Status" : "நிலை"}</th>
                     </tr></thead>
@@ -268,8 +284,10 @@ const CrpReportsTab = () => {
                       {list.map((d, i) => (
                         <tr key={d._id} className="border-b border-border/40">
                           <td className="py-1.5 px-1 text-muted-foreground">{i + 1}</td>
-                          <td className="py-1.5 px-1 font-medium text-foreground">{d.userId?.name || d.farmerName || "-"}</td>
-                          <td className="py-1.5 px-1 text-foreground">{d.userId?.hamlet || d.hamlet || "-"}</td>
+                          <td className="py-1.5 px-1 font-medium text-foreground">{farmerName(d)}</td>
+                          <td className="py-1.5 px-1 text-foreground">{farmerShg(d)}</td>
+                          <td className="py-1.5 px-1 text-foreground">{farmerAddress(d)}</td>
+                          <td className="py-1.5 px-1 text-foreground">{farmerPhone(d)}</td>
                           <td className="py-1.5 px-1 text-foreground">{type === "Loan" ? `₹${(d.amount || 0).toLocaleString()}` : (d.quantity || "-")}</td>
                           <td className="py-1.5 px-1">
                             <span className={`font-semibold ${
@@ -327,7 +345,7 @@ const CrpReportsTab = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead><tr className="border-b border-border">{weeklyHeaders.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}</tr></thead>
-            <tbody>{weeklyRows.map((row, i) => (<tr key={i} className="border-b border-border/40">{row.map((cell, j) => <td key={j} className={`py-2 px-1 ${j === 6 ? "font-bold text-primary" : "text-foreground"}`}>{cell}</td>)}</tr>))}</tbody>
+            <tbody>{weeklyRows.map((row, i) => (<tr key={i} className="border-b border-border/40">{row.map((cell, j) => <td key={j} className={`py-2 px-1 ${j === 9 ? "font-bold text-primary" : "text-foreground"}`}>{cell}</td>)}</tr>))}</tbody>
           </table>
         </div>
       </Section>
@@ -364,8 +382,10 @@ const CrpReportsTab = () => {
               <thead><tr className="border-b border-border">{soldHeaders.map((h) => <th key={h} className="text-left py-2 px-1 text-muted-foreground font-medium">{h}</th>)}</tr></thead>
               <tbody>{soldStocks.map((s, i) => (
                 <tr key={i} className="border-b border-border/40">
-                  <td className="py-2 px-1 text-foreground">{s.farmerName}</td>
-                  <td className="py-2 px-1 text-foreground">{s.hamlet}</td>
+                  <td className="py-2 px-1 text-foreground">{farmerName(s)}</td>
+                  <td className="py-2 px-1 text-foreground">{farmerShg(s)}</td>
+                  <td className="py-2 px-1 text-foreground">{farmerAddress(s)}</td>
+                  <td className="py-2 px-1 text-foreground">{farmerPhone(s)}</td>
                   <td className="py-2 px-1 text-foreground">{s.broilers}</td>
                   <td className="py-2 px-1 text-foreground">{s.chicks}</td>
                   <td className="py-2 px-1 text-foreground">{s.eggs}</td>

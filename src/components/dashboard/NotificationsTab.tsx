@@ -113,6 +113,7 @@ const NotificationsTab = ({ user }: { user: User }) => {
     market:                  { label: t("marketPrice"),        className: "bg-success text-success-foreground", icon: TrendingUp,    iconColor: "text-success",      bg: "bg-success/8" },
     tip:                     { label: t("farmingTip"),         className: "bg-primary text-primary-foreground", icon: Lightbulb,     iconColor: "text-primary",      bg: "bg-primary/8" },
     vaccination_reminder:    { label: lang === "ta" ? "தடுப்பூசி நினைவூட்டல்" : "Vaccination Reminder", className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },
+    vaccination_stock_reminder: { label: lang === "ta" ? "தடுப்பூசி இருப்பு நினைவூட்டல்" : "Vaccination Stock Reminder", className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },
     r2b_reminder:            { label: "R2B Reminder",           className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },
     deworming_reminder:      { label: "Deworming Reminder",      className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },
     booster_reminder:        { label: "Booster Reminder",        className: "bg-warning text-warning-foreground", icon: Syringe, iconColor: "text-warning", bg: "bg-warning/8" },

@@ -26,6 +26,7 @@ const TYPE_LABEL: Record<string, { en: string; ta: string }> = {
   fowl_pox:    { en: "Fowl Pox Vaccine",        ta: "கோழி அம்மை தடுப்பூசி" },
   deworming:   { en: "Deworming",               ta: "குடற்புழு நீக்கம்" },
   R2B:         { en: "R2B + Deworming",         ta: "R2B + புழு நீக்கம்" },
+  multivitamin: { en: "Multivitamins",          ta: "மல்டிவைட்டமின்கள்" },
   R2B_booster: { en: "R2B Booster + Deworming", ta: "R2B மீண்டும் + புழு நீக்கம்" },
 };
 
@@ -42,12 +43,28 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
   const weekDone = weekData?.submitted ?? false;
 
   const schedule: any[] = scheduleData?.schedule ?? [];
-  const nextVax = (Array.isArray(scheduleData) ? scheduleData : [])
-    .flatMap((b: any) => (b.schedule ?? []).map((e: any) => ({ ...e, batchName: b.batchName })))
-    .filter((e: any) => e.status === "scheduled" || e.status === "overdue" || e.status === "rescheduled")
-    .sort((a: any, b: any) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0] ?? null;
+  const batchNextEvents = (Array.isArray(scheduleData) ? scheduleData : [])
+    .map((batch: any) => {
+      const events = (batch.schedule ?? []).map((e: any) => ({
+        ...e,
+        batchName: batch.batchName,
+        batchId: batch.batchId,
+        effectiveDate: e.status === "rescheduled" && e.rescheduledDate ? e.rescheduledDate : e.scheduledDate,
+      }));
 
-  const isOverdue = nextVax?.status === "overdue";
+      const upcoming = events.filter((e: any) => ["scheduled", "overdue", "rescheduled"].includes(e.status));
+      const next = upcoming.sort((a: any, b: any) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime())[0];
+      if (!next) return null;
+
+      const eventDate = new Date(next.effectiveDate);
+      const daysToGo = Math.max(0, Math.ceil((eventDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+      return { ...next, daysToGo, eventDate };
+    })
+    .filter(Boolean) as any[];
+
+  const nextEvents = batchNextEvents;
+  const nextVax = nextEvents[0] ?? null;
+  const isOverdue = nextEvents.some((e: any) => e.status === "overdue");
 
   const cards: { key: NavTab; titleTa: string; titleEn: string; icon: typeof Bird; color: string; bg: string }[] = [
     { key: "weekly",  titleTa: t("birdsUpdate"),        titleEn: "(Birds update)",        icon: Bird,          color: "text-primary",   bg: "bg-primary/10" },
@@ -88,14 +105,23 @@ const HomeTab = ({ user, onNavigate }: HomeTabProps) => {
               <p className={`text-xs font-bold mb-0.5 ${isOverdue ? "text-destructive" : "text-warning"}`}>
                 {isOverdue
                   ? (lang === "ta" ? "⚠️ காலாவதியானது!" : "⚠️ Overdue!")
-                  : (lang === "ta" ? "💉 அடுத்த தடுப்பூசி" : "💉 Next Vaccination")}
+                  : (lang === "ta" ? "💉 அடுத்த தடுப்பூசிகள்" : "💉 Next Vaccinations")}
               </p>
               <p className="text-sm font-bold text-foreground">
-                {TYPE_LABEL[nextVax.type]?.[lang as "en" | "ta"] ?? nextVax.label}
+                {nextEvents.length > 1
+                  ? (lang === "ta" ? "பதிவுசெய்யப்படும் அடுத்த தேதிகள்" : "Next upcoming dates")
+                  : TYPE_LABEL[nextVax.type]?.[lang as "en" | "ta"] ?? nextVax.label}
               </p>
-              <p className={`text-xs mt-0.5 font-semibold ${isOverdue ? "text-destructive" : "text-primary"}`}>
-                {fmt(nextVax.scheduledDate)}{nextVax.batchName ? ` • ${nextVax.batchName}` : ""}
-              </p>
+              <div className="mt-2 space-y-1">
+                {nextEvents.map((event: any) => (
+                  <p key={`${event.batchId}-${event.type}`} className={`text-xs mt-0.5 font-semibold ${event.status === "overdue" ? "text-destructive" : "text-primary"}`}>
+                    {fmt(event.effectiveDate)} • {event.batchName}
+                    {event.status !== "overdue" && event.daysToGo > 0
+                      ? ` (${lang === "ta" ? "இன்னும்" : "still"} ${event.daysToGo} ${lang === "ta" ? "நாட்கள்" : "days"} ${lang === "ta" ? "மீதம்" : "to go"})`
+                      : ""}
+                  </p>
+                ))}
+              </div>
             </>
           ) : (
             <>

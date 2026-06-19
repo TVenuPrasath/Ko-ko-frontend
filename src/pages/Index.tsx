@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getUser, setUser, getToken, clearUser, User } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { setupPushNotifications } from "@/lib/pushNotifications";
 import ChooseActionScreen from "@/components/auth/ChooseActionScreen";
 import RegistrationScreen from "@/components/auth/RegistrationScreen";
 import OtpScreen from "@/components/auth/OtpScreen";
@@ -84,6 +85,7 @@ const Index = () => {
 
   const handleOtpVerified = (verifiedUser: User, token: string) => {
     setUser(verifiedUser, token);
+    setupPushNotifications(token);
     setUserState(verifiedUser);
     setScreen("app");
   };

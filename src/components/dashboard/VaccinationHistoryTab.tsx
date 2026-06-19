@@ -10,12 +10,13 @@ function fmt(d: string | Date): string {
 }
 
 const TYPE_LABELS: Record<string, { en: string; ta: string }> = {
-  F_vaccine:    { en: "F Vaccine (Day 14)",        ta: "F தடுப்பூசி (14ஆம் நாள்)" },
-  IBD:          { en: "IBD Vaccine (Day 28)",       ta: "IBD தடுப்பூசி (28ஆம் நாள்)" },
-  LaSota:       { en: "LaSota Vaccine (Day 42)",    ta: "LaSota தடுப்பூசி (42ஆம் நாள்)" },
-  fowl_pox:     { en: "Fowl Pox Vaccine (Day 56)",  ta: "கோழி அம்மை தடுப்பூசி (56ஆம் நாள்)" },
-  deworming:    { en: "Deworming (Day 70)",          ta: "குடற்புழு நீக்கம் (70ஆம் நாள்)" },
-  R2B:          { en: "R2B + Deworming (Day 84)",   ta: "R2B + புழு நீக்கம் (84ஆம் நாள்)" },
+  F_vaccine:    { en: "F Vaccine (Day 0)",          ta: "F தடுப்பூசி (0ஆம் நாள்)" },
+  IBD:          { en: "IBD Vaccine (Day 14)",       ta: "IBD தடுப்பூசி (14ஆம் நாள்)" },
+  LaSota:       { en: "LaSota Vaccine (Day 28)",    ta: "LaSota தடுப்பூசி (28ஆம் நாள்)" },
+  fowl_pox:     { en: "Fowl Pox Vaccine (Day 42)",  ta: "கோழி அம்மை தடுப்பூசி (42ஆம் நாள்)" },
+  deworming:    { en: "Deworming (Day 56)",          ta: "குடற்புழு நீக்கம் (56ஆம் நாள்)" },
+  R2B:          { en: "R2B + Deworming (Day 70)",   ta: "R2B + புழு நீக்கம் (70ஆம் நாள்)" },
+  multivitamin: { en: "Multivitamins (Day 84)",     ta: "மல்டிவைட்டமின்கள் (84ஆம் நாள்)" },
   R2B_booster:  { en: "R2B Booster + Deworming",    ta: "R2B மீண்டும் + புழு நீக்கம்" },
 };
 
@@ -23,7 +24,7 @@ const STATUS_STYLE: Record<string, string> = {
   completed:   "text-success bg-success/10",
   scheduled:   "text-primary bg-primary/10",
   overdue:     "text-destructive bg-destructive/10",
-  missed:      "text-danger bg-danger/10",
+  missed:      "text-amber-700 bg-amber-100",
   rescheduled: "text-warning bg-warning/10",
 };
 
@@ -36,7 +37,7 @@ const BatchSection = ({ batch, lang }: BatchSectionProps) => {
   const [expanded, setExpanded] = useState(true);
   const schedule: any[] = batch.schedule ?? [];
   const upcoming = schedule.filter((e) => e.status === "scheduled" || e.status === "rescheduled" || e.status === "overdue");
-  const done     = schedule.filter((e) => e.status === "completed");
+  const done     = schedule.filter((e) => e.status === "completed" || e.status === "missed");
 
   return (
     <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
@@ -98,7 +99,7 @@ const BatchSection = ({ batch, lang }: BatchSectionProps) => {
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 mt-1 ${STATUS_STYLE[e.status] ?? ""}`}>
                   {e.status === "overdue" && <AlertTriangle size={10} className="inline mr-0.5" />}
                   {e.status === "scheduled" && <Clock size={10} className="inline mr-0.5" />}
-                  {e.status}
+                  {e.status === "missed" ? "skipped" : e.status}
                 </span>
               </div>
             );
@@ -112,9 +113,12 @@ const BatchSection = ({ batch, lang }: BatchSectionProps) => {
               <div className="flex flex-col gap-1 mt-2">
                 {done.map((e) => {
                   const label = TYPE_LABELS[e.type]?.[lang as "en" | "ta"] ?? e.label ?? e.type;
+                  const skipped = e.status === "missed" || (e.notes && String(e.notes).toLowerCase().includes("skipped"));
                   return (
                     <div key={e.type + e.scheduledDate} className="flex items-center justify-between py-1">
-                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {label} {skipped ? `(${lang === "ta" ? "தவறிவிட்டது" : "skipped"})` : ""}
+                      </p>
                       <span className="text-xs font-bold text-success flex items-center gap-1">
                         <CheckCircle2 size={11} /> {e.completedDate ? fmt(e.completedDate) : fmt(e.scheduledDate)}
                       </span>

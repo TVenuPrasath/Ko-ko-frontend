@@ -15,12 +15,13 @@ function fmt(d: string | Date): string {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  F_vaccine:   "F Vaccine (Day 14)",
-  IBD:         "IBD Vaccine (Day 28)",
-  LaSota:      "LaSota Vaccine (Day 42)",
-  fowl_pox:    "Fowl Pox Vaccine (Day 56)",
-  deworming:   "Deworming (Day 70)",
-  R2B:         "R2B + Deworming (Day 84)",
+  F_vaccine:   "F Vaccine (Day 0)",
+  IBD:         "IBD Vaccine (Day 14)",
+  LaSota:      "LaSota Vaccine (Day 28)",
+  fowl_pox:    "Fowl Pox Vaccine (Day 42)",
+  deworming:   "Deworming (Day 56)",
+  R2B:         "R2B + Deworming (Day 70)",
+  multivitamin: "Multivitamins (Day 84)",
   R2B_booster: "R2B Booster + Deworming",
 };
 
@@ -28,7 +29,7 @@ const STATUS_STYLE: Record<string, string> = {
   completed:   "text-success bg-success/10",
   scheduled:   "text-primary bg-primary/10",
   overdue:     "text-destructive bg-destructive/10",
-  missed:      "text-danger bg-danger/10",
+  missed:      "text-amber-700 bg-amber-100",
   rescheduled: "text-warning bg-warning/10",
 };
 
@@ -56,7 +57,7 @@ const ActionModal = ({ event, onClose, onDone }: ActionModalProps) => {
         toast.success(`✅ ${label} marked as completed`);
       } else if (action === "missed") {
         await api.missVaccination(event._id, notes);
-        toast.success(`⚠️ ${label} marked as missed`);
+        toast.success(`⚠️ ${label} marked as skipped`);
       } else if (action === "reschedule") {
         if (!rescheduleDate) { toast.error("Select a new date"); setLoading(false); return; }
         await api.rescheduleVaccination(event._id, rescheduleDate, notes);
@@ -94,7 +95,7 @@ const ActionModal = ({ event, onClose, onDone }: ActionModalProps) => {
                   : "border-border text-muted-foreground"
               }`}
             >
-              {a === "complete" ? "✅ Done" : a === "missed" ? "❌ Missed" : "📅 Reschedule"}
+              {a === "complete" ? "✅ Done" : a === "missed" ? "❌ Skipped" : "📅 Reschedule"}
             </button>
           ))}
         </div>
@@ -131,11 +132,12 @@ interface BatchCardProps {
 const BatchCard = ({ batch, onRefetch }: BatchCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [actionEvent, setActionEvent] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const schedule: any[] = batch.schedule ?? [];
-  const overdue   = schedule.filter((e) => e.status === "overdue" || e.status === "missed");
+  const overdue   = schedule.filter((e) => e.status === "overdue");
   const upcoming  = schedule.filter((e) => e.status === "scheduled" || e.status === "rescheduled");
-  const done      = schedule.filter((e) => e.status === "completed");
+  const done      = schedule.filter((e) => e.status === "completed" || e.status === "missed");
 
   return (
     <>
@@ -165,6 +167,27 @@ const BatchCard = ({ batch, onRefetch }: BatchCardProps) => {
                 {overdue.length} overdue
               </span>
             )}
+            <button
+              disabled={deleting}
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (deleting) return;
+                if (!window.confirm("Delete this batch and all its vaccination records?")) return;
+                setDeleting(true);
+                try {
+                  await api.deleteBatch(batch.batchId);
+                  toast.success(`✅ Batch "${batch.batchName}" deleted`);
+                  onRefetch();
+                } catch (err: any) {
+                  toast.error(err?.message || "Failed to delete batch");
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+              className="text-xs font-semibold text-danger border border-danger/20 rounded-xl px-2 py-1 hover:bg-danger/10"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </button>
             {expanded ? <ChevronUp size={15} className="text-muted-foreground" /> : <ChevronDown size={15} className="text-muted-foreground" />}
           </div>
         </button>
@@ -191,7 +214,7 @@ const BatchCard = ({ batch, onRefetch }: BatchCardProps) => {
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${STATUS_STYLE[e.status] ?? ""}`}>
-                    {e.status}
+                    {e.status === "missed" ? "skipped" : e.status}
                   </span>
                   {e._id && (
                     <button
@@ -211,14 +234,19 @@ const BatchCard = ({ batch, onRefetch }: BatchCardProps) => {
                   Completed ({done.length})
                 </summary>
                 <div className="flex flex-col gap-1 mt-2">
-                  {done.map((e) => (
-                    <div key={e.type + e.scheduledDate} className="flex items-center justify-between py-1">
-                      <p className="text-xs text-muted-foreground">{TYPE_LABELS[e.type] ?? e.label}</p>
-                      <span className="text-xs font-bold text-success flex items-center gap-1">
-                        <CheckCircle2 size={11} /> {e.completedDate ? fmt(e.completedDate) : fmt(e.scheduledDate)}
-                      </span>
-                    </div>
-                  ))}
+                  {done.map((e) => {
+                    const skipped = e.status === "missed" || (e.notes && String(e.notes).toLowerCase().includes("skipped"));
+                    return (
+                      <div key={e.type + e.scheduledDate} className="flex items-center justify-between py-1">
+                        <p className="text-xs text-muted-foreground">
+                          {TYPE_LABELS[e.type] ?? e.label} {skipped ? "(skipped)" : ""}
+                        </p>
+                        <span className="text-xs font-bold text-success flex items-center gap-1">
+                          <CheckCircle2 size={11} /> {e.completedDate ? fmt(e.completedDate) : fmt(e.scheduledDate)}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </details>
             )}
@@ -249,7 +277,7 @@ const FarmerScheduleRow = ({ farmer }: FarmerRowProps) => {
   });
 
   const totalOverdue = (batches as any[]).reduce((sum, b) =>
-    sum + (b.schedule ?? []).filter((e: any) => e.status === "overdue" || e.status === "missed").length, 0);
+    sum + (b.schedule ?? []).filter((e: any) => e.status === "overdue").length, 0);
 
   const handleAddBatch = async () => {
     if (!batchName || !batchDate) { toast.error("Batch name and date required"); return; }
@@ -341,12 +369,38 @@ const FarmerScheduleRow = ({ farmer }: FarmerRowProps) => {
 // ── Main tab ──────────────────────────────────────────────────────────────────
 const CrpVaccinationScheduleTab = () => {
   const [search, setSearch] = useState("");
+  const [summaryOpen, setSummaryOpen] = useState(true);
+  const [summaryDate, setSummaryDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  });
 
   const { data: farmers = [], isLoading } = useQuery({
     queryKey: ["crpFarmers"],
     queryFn: () => api.getFarmers(),
     staleTime: 60_000,
   });
+
+  const { data: allVaccines = [], isLoading: isSummaryLoading } = useQuery({
+    queryKey: ["allVaccinations"],
+    queryFn: () => api.getAllVaccinations().catch(() => []),
+    staleTime: 60_000,
+  });
+
+  const summaryRecords = (allVaccines as any[])
+    .map((r: any) => ({
+      ...r,
+      effectiveDate: r.status === "rescheduled" && r.rescheduledDate ? r.rescheduledDate : r.scheduledDate,
+      farmerName: r.userId?.name || "Unknown",
+      batchName: r.batchId?.batchName || "",
+    }))
+    .filter((r: any) => ["scheduled", "overdue", "rescheduled"].includes(r.status))
+    .filter((r: any) => {
+      const d = new Date(r.effectiveDate);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` === summaryDate;
+    });
+
+  const summaryCount = summaryRecords.length;
 
   const filtered = (farmers as any[]).filter((f) =>
     !search || f.name.toLowerCase().includes(search.toLowerCase()) || f.phone.includes(search)
@@ -362,6 +416,61 @@ const CrpVaccinationScheduleTab = () => {
             <p className="text-xs opacity-80">Manage batches & track all farmers</p>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
+        <button
+          onClick={() => setSummaryOpen((p) => !p)}
+          className="w-full px-4 py-3 flex items-center justify-between text-left"
+        >
+          <div>
+            <p className="text-sm font-bold text-foreground">Vaccination due on {summaryDate}</p>
+            <p className="text-xs text-muted-foreground">
+              {summaryOpen ? "Collapse" : "Expand"} to see which farmer needs which vaccine
+            </p>
+          </div>
+          <ChevronDown size={18} className={`transition-transform ${summaryOpen ? "rotate-180" : ""}`} />
+        </button>
+        {summaryOpen && (
+          <div className="border-t border-border/60 px-4 py-3 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{summaryCount} pending vaccination{summaryCount === 1 ? "" : "s"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-foreground">Date</label>
+                <Input
+                  type="date"
+                  value={summaryDate}
+                  onChange={(e) => setSummaryDate(e.target.value)}
+                  className="h-10 text-xs"
+                />
+              </div>
+            </div>
+            {isSummaryLoading ? (
+              <div className="text-xs text-muted-foreground">Loading schedule...</div>
+            ) : summaryCount === 0 ? (
+              <div className="text-xs text-muted-foreground">No vaccinations scheduled for this date.</div>
+            ) : (
+              <div className="grid gap-2">
+                {summaryRecords.slice(0, 6).map((record: any) => (
+                  <div key={`${record._id}-${record.batchId}`} className="rounded-2xl border border-border/70 bg-muted/30 p-3">
+                    <p className="text-xs font-bold text-foreground truncate">{record.farmerName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {record.batchName ? `${record.batchName} • ` : ""}{TYPE_LABELS[record.type] ?? record.label}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {record.status === "rescheduled" ? "Rescheduled" : record.status === "overdue" ? "Overdue" : "Scheduled"}
+                    </p>
+                  </div>
+                ))}
+                {summaryCount > 6 && (
+                  <p className="text-xs text-muted-foreground">+{summaryCount - 6} more farmers</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <input

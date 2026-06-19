@@ -3,7 +3,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/mockData";
-import { Minus, Plus, Loader2, Bird, ShoppingCart } from "lucide-react";
+import { Minus, Plus, Loader2, Bird, ShoppingCart, Syringe } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -17,10 +17,21 @@ const WeeklyUpdateTab = () => {
   const [saleBroiler, setSaleBroiler] = useState(0);
   const [saleChicks, setSaleChicks] = useState(0);
   const [saleEggs, setSaleEggs] = useState(0);
+  const [vaxUnder1Week, setVaxUnder1Week] = useState(0);
+  const [vax2to3Weeks, setVax2to3Weeks] = useState(0);
+  const [vax4to5Weeks, setVax4to5Weeks] = useState(0);
+  const [vax6to7Weeks, setVax6to7Weeks] = useState(0);
+  const [vax8to9Weeks, setVax8to9Weeks] = useState(0);
+  const [vax10to11Weeks, setVax10to11Weeks] = useState(0);
+  const [vax12to13Weeks, setVax12to13Weeks] = useState(0);
+  const [vax4Months, setVax4Months] = useState(0);
+  const [vax5Months, setVax5Months] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saleLoading, setSaleLoading] = useState(false);
+  const [vaxLoading, setVaxLoading] = useState(false);
   const [birdResetKey, setBirdResetKey] = useState(0);
   const [saleResetKey, setSaleResetKey] = useState(0);
+  const [vaxResetKey, setVaxResetKey] = useState(0);
 
   const { data: pastUpdates = [] } = useQuery({
     queryKey: ["birdUpdates"],
@@ -30,6 +41,7 @@ const WeeklyUpdateTab = () => {
 
   const total = chicks + growers + layers;
   const saleTotal = saleBroiler + saleChicks + saleEggs;
+  const vaxTotal = vaxUnder1Week + vax2to3Weeks + vax4to5Weeks + vax6to7Weeks + vax8to9Weeks + vax10to11Weeks + vax12to13Weeks + vax4Months + vax5Months;
 
   const Counter = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => {
     const [inputVal, setInputVal] = useState(String(value));
@@ -89,6 +101,39 @@ const WeeklyUpdateTab = () => {
     }
   };
 
+  const handleSubmitVaccinationStock = async () => {
+    setVaxLoading(true);
+    try {
+      await api.submitVaccinationStock({
+        chicksUnder1Week: vaxUnder1Week,
+        chicks2to3Weeks: vax2to3Weeks,
+        chicks4to5Weeks: vax4to5Weeks,
+        chicks6to7Weeks: vax6to7Weeks,
+        chicks8to9Weeks: vax8to9Weeks,
+        chicks10to11Weeks: vax10to11Weeks,
+        chicks12to13Weeks: vax12to13Weeks,
+        birds4Months: vax4Months,
+        birds5Months: vax5Months,
+      });
+      toast.success("தடுப்பூசி இருப்பு சேமிக்கப்பட்டது ✅");
+      setVaxUnder1Week(0);
+      setVax2to3Weeks(0);
+      setVax4to5Weeks(0);
+      setVax6to7Weeks(0);
+      setVax8to9Weeks(0);
+      setVax10to11Weeks(0);
+      setVax12to13Weeks(0);
+      setVax4Months(0);
+      setVax5Months(0);
+      setVaxResetKey((k) => k + 1);
+      queryClient.invalidateQueries({ queryKey: ["vaccinationStockUpdates"] });
+    } catch (err: any) {
+      toast.error(err.message || err.error || "Submit failed");
+    } finally {
+      setVaxLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-5">
       {/* Bird count card */}
@@ -142,6 +187,40 @@ const WeeklyUpdateTab = () => {
             className="tap-target w-full text-base font-bold mt-4 rounded-xl shadow-sm disabled:opacity-40 bg-success text-success-foreground hover:bg-success/90"
           >
             {saleLoading ? <Loader2 className="animate-spin" size={20} /> : t("saveSaleInfo")}
+          </Button>
+        </div>
+      </div>
+
+      {/* Vaccination stock card */}
+      <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden" key={`vax-${vaxResetKey}`}>
+        <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #00695C, #009688)" }}>
+          <Syringe size={20} className="text-white" />
+          <div>
+            <h3 className="text-sm font-bold text-white">தடுப்பூசி இருப்பு</h3>
+            <p className="text-[11px] text-white/75">Vaccination stock by age group</p>
+          </div>
+        </div>
+        <div className="p-4">
+          <Row label="1. 1 வார வயதுக்குள்" value={vaxUnder1Week} onChange={setVaxUnder1Week} />
+          <Row label="2. 2 - 3 வார வயது" value={vax2to3Weeks} onChange={setVax2to3Weeks} />
+          <Row label="3. 4 - 5 வார வயது" value={vax4to5Weeks} onChange={setVax4to5Weeks} />
+          <Row label="4. 6 - 7 வார வயது" value={vax6to7Weeks} onChange={setVax6to7Weeks} />
+          <Row label="5. 8 - 9 வார வயது" value={vax8to9Weeks} onChange={setVax8to9Weeks} />
+          <Row label="6. 10 - 11 வார வயது" value={vax10to11Weeks} onChange={setVax10to11Weeks} />
+          <Row label="7. 12 - 13 வார வயது" value={vax12to13Weeks} onChange={setVax12to13Weeks} />
+          <Row label="8. 4 மாதங்கள் ஆனவை" value={vax4Months} onChange={setVax4Months} />
+          <Row label="9. 5 மாதங்கள் ஆனவை" value={vax5Months} onChange={setVax5Months} />
+          <div className="flex items-center justify-between pt-3 mt-1">
+            <span className="text-sm text-muted-foreground">{t("total")}</span>
+            <span className="text-xl font-bold text-[#00695C]">{vaxTotal}</span>
+          </div>
+          <Button
+            onClick={handleSubmitVaccinationStock}
+            disabled={vaxTotal === 0 || vaxLoading}
+            className="tap-target w-full text-base font-bold mt-4 rounded-xl shadow-sm disabled:opacity-40"
+            style={{ background: vaxTotal > 0 ? "linear-gradient(135deg, #00695C, #009688)" : undefined }}
+          >
+            {vaxLoading ? <Loader2 className="animate-spin" size={20} /> : "தடுப்பூசி இருப்பை சேமிக்கவும்"}
           </Button>
         </div>
       </div>
