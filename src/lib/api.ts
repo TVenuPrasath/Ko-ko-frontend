@@ -31,6 +31,21 @@ export const api = {
     request("POST", "/birds", body),
   getAllBirdUpdates: () => request("GET", "/birds/all"),
 
+  // Vaccination Stock
+  getVaccinationStockUpdates: () => request("GET", "/vaccination-stock"),
+  checkVaccinationStockSubmitted: () => request("GET", "/vaccination-stock/check"),
+  submitVaccinationStock: (body: {
+    chicksUnder1Week: number;
+    chicks2to3Weeks: number;
+    chicks4to5Weeks: number;
+    chicks6to7Weeks: number;
+    chicks8to9Weeks: number;
+    chicks10to11Weeks: number;
+    chicks12to13Weeks: number;
+    birds4Months: number;
+    birds5Months: number;
+  }) => request("POST", "/vaccination-stock", body),
+
   // Vaccinations
   getVaccinations: () => request("GET", "/vaccinations"),
   getAllVaccinations: () => request("GET", "/vaccinations/all"),
@@ -93,6 +108,11 @@ export const api = {
   submitSaleStock: (body: { broilers: number; chicks: number; eggs: number }) =>
     request("POST", "/sale-stocks", body),
   markSold: (id: string) => request("PATCH", `/sale-stocks/${id}/sold`),
+
+  // Vaccination Stock
+  getVaccinationStock: () => request("GET", "/vaccination-stock"),
+  submitVaccinationStock: (body: { week0?: number; week2?: number; week4?: number; week6?: number; week8?: number; week10?: number; week12?: number; month4?: number; month5?: number }) =>
+    request("POST", "/vaccination-stock", body),
 
   // Activity Feed
   getActivity: () => request("GET", "/activity"),

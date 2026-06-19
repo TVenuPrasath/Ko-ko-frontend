@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { User, clearUser } from "@/lib/auth";
-import { Home, ClipboardList, Bug, Bell, LogOut, IndianRupee } from "lucide-react";
+import { Home, ClipboardList, Bug, Bell, LogOut, IndianRupee, Syringe } from "lucide-react";
 import { api } from "@/lib/api";
 import HomeTab from "./HomeTab";
 import WeeklyUpdateTab from "./WeeklyUpdateTab";
@@ -11,13 +11,14 @@ import VaccinationHistoryTab from "./VaccinationHistoryTab";
 import MarketPricesTab from "./MarketPricesTab";
 import LoanRequestTab from "./LoanRequestTab";
 import ServiceRequestTab from "./ServiceRequestTab";
+import VaccinationStockTab from "./VaccinationStockTab";
 
 interface DashboardProps {
   user: User;
   onLogout: () => void;
 }
 
-type Tab = "home" | "weekly" | "disease" | "history" | "prices" | "notifications" | "loan";
+type Tab = "home" | "weekly" | "disease" | "history" | "prices" | "notifications" | "loan" | "vacstock";
 
 const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const { t, lang, setLang } = useLanguage();
@@ -69,6 +70,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const tabs: { key: Tab; icon: typeof Home; label: string }[] = [
     { key: "home",          icon: Home,         label: t("home") },
     { key: "weekly",        icon: ClipboardList, label: t("weeklyUpdate") },
+    { key: "vacstock",      icon: Syringe,       label: lang === "ta" ? "தடுப்பூசி" : "Vacc. Stock" },
     { key: "loan",          icon: IndianRupee,   label: t("services") },
     { key: "notifications", icon: Bell,          label: t("notifications") },
   ];
@@ -104,6 +106,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         {tab === "history" && <VaccinationHistoryTab />}
         {tab === "prices" && <MarketPricesTab />}
         {tab === "notifications" && <NotificationsTab user={user} />}
+        {tab === "vacstock" && <VaccinationStockTab />}
         {tab === "loan" && (
           <div className="flex flex-col gap-5">
             <ServiceRequestTab />
