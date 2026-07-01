@@ -38,13 +38,13 @@ const ChooseActionScreen = ({ onRegister, onLogin }: ChooseActionScreenProps) =>
 
         {/* Top Partner/Govt Logos */}
         <div className="flex justify-center items-center gap-4 mb-5">
-          <div className="w-12 h-12 rounded-full bg-white/90 border border-white/40 flex items-center justify-center shadow-md overflow-hidden">
+          <div className="w-16 h-16 rounded-full bg-white/90 border border-white/40 flex items-center justify-center shadow-md overflow-hidden">
             <img src="/logoleft.png" alt="Left Logo" className="w-full h-full object-contain p-1" />
           </div>
-          <div className="w-12 h-12 rounded-full bg-white/90 border border-white/40 flex items-center justify-center shadow-md overflow-hidden">
+          <div className="w-16 h-16 rounded-full bg-white/90 border border-white/40 flex items-center justify-center shadow-md overflow-hidden">
             <img src="/logocentre.png" alt="Centre Logo" className="w-full h-full object-contain p-1" />
           </div>
-          <div className="w-12 h-12 rounded-full bg-white/90 border border-white/40 flex items-center justify-center shadow-md overflow-hidden">
+          <div className="w-16 h-16 rounded-full bg-white/90 border border-white/40 flex items-center justify-center shadow-md overflow-hidden">
             <img src="/logoright.png" alt="Right Logo" className="w-full h-full object-contain p-1" />
           </div>
         </div>
