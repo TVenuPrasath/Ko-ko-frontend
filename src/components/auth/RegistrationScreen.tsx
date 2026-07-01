@@ -10,19 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HAMLET_STREETS } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { ArrowLeft, Loader2 } from "lucide-react";
-
-const HAMLETS_LIST = Object.keys(HAMLET_STREETS);
 
 interface RegistrationScreenProps {
   onNext: (data: {
     name: string;
     phone: string;
+    hamletId: string;
+    streetId: string;
     hamlet: string;
-    houseNo: string;
     street: string;
+    houseNo: string;
     shgName: string;
   }) => void;
   onBack: () => void;
@@ -58,8 +57,10 @@ const RegistrationScreen = ({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [houseNo, setHouseNo] = useState("");
-  const [street, setStreet] = useState("");
-  const [hamlet, setHamlet] = useState("");
+  const [selectedHamletId, setSelectedHamletId] = useState("");
+  const [selectedStreetId, setSelectedStreetId] = useState("");
+  const [hamlets, setHamlets] = useState<{ _id: string; name: string }[]>([]);
+  const [streets, setStreets] = useState<{ _id: string; name: string }[]>([]);
   const [shgName, setShgName] = useState("");
   const [shgNames, setShgNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -69,17 +70,18 @@ const RegistrationScreen = ({
       .getShgGroups()
       .then((data: any[]) => setShgNames(data.map((g) => g.name)))
       .catch(() => {});
-  }, []);
 
-  const availableStreets = hamlet
-    ? HAMLET_STREETS[hamlet] || []
-    : [];
+    api
+      .getHamlets()
+      .then((data: any[]) => setHamlets(data))
+      .catch((err) => console.error("Error fetching hamlets:", err));
+  }, []);
 
   const isValid =
     name.trim() &&
     phone.length === 10 &&
-    hamlet &&
-    street &&
+    selectedHamletId &&
+    selectedStreetId &&
     shgName;
 
   const handleSubmit = async () => {
@@ -91,19 +93,31 @@ const RegistrationScreen = ({
 
     setLoading(false);
 
+    const hamletName = hamlets.find((h) => h._id === selectedHamletId)?.name || "";
+    const streetName = streets.find((s) => s._id === selectedStreetId)?.name || "";
+
     onNext({
       name,
       phone,
-      hamlet,
+      hamletId: selectedHamletId,
+      streetId: selectedStreetId,
+      hamlet: hamletName,
+      street: streetName,
       houseNo,
-      street,
       shgName,
     });
   };
 
   const handleHamletChange = (value: string) => {
-    setHamlet(value);
-    setStreet("");
+    setSelectedHamletId(value);
+    setSelectedStreetId("");
+    setStreets([]);
+    if (value) {
+      api
+        .getStreets(value)
+        .then((data: any[]) => setStreets(data))
+        .catch((err) => console.error("Error fetching streets:", err));
+    }
   };
 
   return (
@@ -190,7 +204,7 @@ const RegistrationScreen = ({
 
             <FieldRow label={t("village")}>
               <Select
-                value={hamlet}
+                value={selectedHamletId}
                 onValueChange={handleHamletChange}
               >
                 <SelectTrigger className="tap-target text-base bg-white border-2 focus:border-primary rounded-xl">
@@ -198,13 +212,13 @@ const RegistrationScreen = ({
                 </SelectTrigger>
 
                 <SelectContent>
-                  {HAMLETS_LIST.map((h) => (
+                  {hamlets.map((h) => (
                     <SelectItem
-                      key={h}
-                      value={h}
+                      key={h._id}
+                      value={h._id}
                       className="text-base py-3"
                     >
-                      {h}
+                      {h.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -213,22 +227,22 @@ const RegistrationScreen = ({
 
             <FieldRow label={t("street")}>
               <Select
-                value={street}
-                onValueChange={setStreet}
-                disabled={!hamlet}
+                value={selectedStreetId}
+                onValueChange={setSelectedStreetId}
+                disabled={!selectedHamletId}
               >
                 <SelectTrigger className="tap-target text-base bg-white border-2 focus:border-primary rounded-xl">
                   <SelectValue placeholder={t("selectStreet")} />
                 </SelectTrigger>
 
                 <SelectContent>
-                  {availableStreets.map((s) => (
+                  {streets.map((s) => (
                     <SelectItem
-                      key={s}
-                      value={s}
+                      key={s._id}
+                      value={s._id}
                       className="text-base py-3"
                     >
-                      {s}
+                      {s.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

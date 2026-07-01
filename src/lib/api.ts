@@ -21,8 +21,18 @@ export const api = {
   // Auth
   sendOtp: (phone: string) => request("POST", "/auth/send-otp", { phone }, false),
   verifyOtp: (phone: string, otp: string) => request("POST", "/auth/verify-otp", { phone, otp }, false),
-  register: (data: { phone: string; name: string; hamlet: string; street: string; houseNo: string; shg_name: string }) =>
-    request("POST", "/auth/register", data, false),
+  getHamlets: () => request("GET", "/hamlets", undefined, false),
+  getStreets: (hamletId: string) => request("GET", `/hamlets/${hamletId}/streets`, undefined, false),
+  register: (data: {
+    phone: string;
+    name: string;
+    hamletId: string;
+    streetId: string;
+    hamlet: string;
+    street: string;
+    houseNo: string;
+    shg_name: string;
+  }) => request("POST", "/auth/register", data, false),
 
   // Bird Updates
   getBirdUpdates: () => request("GET", "/birds"),
@@ -116,4 +126,19 @@ export const api = {
 
   // Activity Feed
   getActivity: () => request("GET", "/activity"),
+
+  // Admin Endpoints
+  getAdminStats: () => request("GET", "/admin/stats"),
+  getAdminUsers: () => request("GET", "/admin/users"),
+  toggleUserApproval: (userId: string) => request("PATCH", `/admin/users/${userId}/toggle-approve`),
+  getCrps: () => request("GET", "/crps"),
+  createCrp: (data: any) => request("POST", "/crps", data),
+  updateCrp: (id: string, data: any) => request("PATCH", `/crps/${id}`, data),
+  deleteCrp: (id: string) => request("DELETE", `/crps/${id}`),
+  updateCrpStatus: (id: string, status: string) => request("PATCH", `/crps/${id}/status`, { status }),
+  addHamlet: (name: string, crpId?: string) => request("POST", "/hamlets", { name, crpId }),
+  editHamlet: (id: string, name?: string, crpId?: string) => request("PATCH", `/hamlets/${id}`, { name, crpId }),
+  deleteHamlet: (id: string) => request("DELETE", `/hamlets/${id}`),
+  updateCrpHamlets: (crpId: string, hamletIds: string[]) => request("PATCH", `/crps/${crpId}/hamlets`, { hamletIds }),
+  getBuyers: () => request("GET", "/buyers"),
 };

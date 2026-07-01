@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "154362290474",
+    "project_id": "pultry-app",
+    "storage_bucket": "pultry-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:154362290474:android:792ff7c454ee9eac85be53",
+        "android_client_info": {
+          "package_name": "com.koko.poultry"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDNCG7ffj97AhOLSR-pzeFYJ5sJAREfqc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

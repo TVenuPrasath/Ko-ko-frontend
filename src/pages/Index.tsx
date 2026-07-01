@@ -7,6 +7,7 @@ import RegistrationScreen from "@/components/auth/RegistrationScreen";
 import OtpScreen from "@/components/auth/OtpScreen";
 import Dashboard from "@/components/dashboard/Dashboard";
 import CrpDashboard from "@/components/crp/CrpDashboard";
+import AdminDashboard from "@/components/admin/AdminDashboard";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -68,6 +69,8 @@ const Index = () => {
       await api.register({
         phone: data.phone,
         name: data.name,
+        hamletId: data.hamletId,
+        streetId: data.streetId,
         hamlet: data.hamlet,
         street: data.street,
         houseNo: data.houseNo,
@@ -92,6 +95,7 @@ const Index = () => {
 
   if (screen === "app" && user) {
     if (user.role === "CRP") return <CrpDashboard user={user} onLogout={handleLogout} />;
+    if (user.role === "ADMIN") return <AdminDashboard user={user} onLogout={handleLogout} />;
     return (
       <div className="max-w-[430px] mx-auto min-h-screen shadow-lg">
         <Dashboard user={user} onLogout={handleLogout} />
